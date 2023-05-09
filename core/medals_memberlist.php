@@ -30,6 +30,8 @@ class medals_memberlist
 	/** @var \phpbb\controller\helper */
 	protected $helper;
 
+	const HOUR_TTL = 3600;
+
 	public function __construct(\phpbb\user $user, \phpbb\auth\auth $auth, \phpbb\config\config $config, \phpbb\template\template $template, \phpbb\db\driver\driver_interface $db, $tb_medals, $tb_medals_awarded, $tb_medals_cats, $helper)
 	{
 		$this->user = $user;
@@ -68,7 +70,7 @@ class medals_memberlist
 		$sql = "SELECT id, name
 			FROM " . $this->tb_medals_cats . "
 			ORDER BY order_id";
-		if (!($result = $this->db->sql_query($sql)))
+		if (!($result = $this->db->sql_query($sql, self::HOUR_TTL)))
 		{
 			message_die(GENERAL_ERROR, 'Could not query medal categories list', '', __LINE__, __FILE__, $sql);
 		}
@@ -99,6 +101,7 @@ class medals_memberlist
 				));
 			}
 		}
+		$this->db->sql_freeresult($result);
 
 		$u_nominate = '';
 		if ($s_nominate)
@@ -280,6 +283,7 @@ class medals_memberlist
 					}
 				}
 			}
+			$this->db->sql_freeresult($result);
 		}
 	}
 }

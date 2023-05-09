@@ -39,6 +39,8 @@ class medals
 	protected $phpbb_root_path;
 	protected $php_ext;
 
+	const HOUR_TTL = 3600;
+
 	public function __construct(\phpbb\user $user, \phpbb\auth\auth $auth, \phpbb\config\config $config, \phpbb\request\request_interface $request, \phpbb\template\template $template, \phpbb\controller\helper $helper, \phpbb\db\driver\driver_interface $db, $tb_medals, $tb_medals_awarded, $tb_medals_cats, $dynamic, $phpbb_root_path, $php_ext)
 	{
 		$this->user = $user;
@@ -111,7 +113,7 @@ class medals
 		$sql = "SELECT *
 			FROM " . $this->tb_medal . "
 			ORDER BY order_id ASC";
-		$result = $this->db->sql_query($sql);
+		$result = $this->db->sql_query($sql, self::HOUR_TTL);
 		while ($row = $this->db->sql_fetchrow($result))
 		{
 			$medals[$row['id']] = array(
@@ -133,7 +135,7 @@ class medals
 		$sql = "SELECT *
 			FROM " . $this->tb_medals_cats . "
 			ORDER BY order_id ASC";
-		$result = $this->db->sql_query($sql);
+		$result = $this->db->sql_query($sql, self::HOUR_TTL);
 		$cats = array();
 		while ($row = $this->db->sql_fetchrow($result))
 		{
@@ -583,7 +585,7 @@ class medals
 				}
 
 				$username = array();
-				if ( sizeof($user_id) > 1 )
+				if (sizeof($user_id) > 1 )
 				{
 					foreach ($this->uid as $user_id)
 					{
@@ -1099,11 +1101,12 @@ class medals
 	{
 		$sql = "SELECT * FROM " . $this->tb_medals_cats . "
 			ORDER BY order_id ASC";
-		$result = $this->db->sql_query_limit($sql, 1, 0);
+		$result = $this->db->sql_query_limit($sql, 1, 0, self::HOUR_TTL);
 		while ($row = $this->db->sql_fetchrow($result))
 		{
 			$cat = $row['id'];
 		}
+		$this->db->sql_freeresult($result);
 		return $cat;
 	}
 

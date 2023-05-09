@@ -181,6 +181,7 @@ class listener implements EventSubscriberInterface
 					$post_row['MEDALS'] = $this->viewtopic->medal_row($rowset2);
 					$event['post_row'] = $post_row;
 				}
+				$this->db->sql_freeresult($result);
 			}
 		}
 	}
