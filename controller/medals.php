@@ -108,7 +108,7 @@ class medals
 		include($phpbb_root_path . 'includes/functions_display.' . $phpEx);
 		include($phpbb_root_path . 'includes/message_parser.' . $phpEx);
 
-		$medals = array();
+		$medals = [];
 
 		$sql = "SELECT *
 			FROM " . $this->tb_medal . "
@@ -136,7 +136,7 @@ class medals
 			FROM " . $this->tb_medals_cats . "
 			ORDER BY order_id ASC";
 		$result = $this->db->sql_query($sql, self::HOUR_TTL);
-		$cats = array();
+		$cats = [];
 		while ($row = $this->db->sql_fetchrow($result))
 		{
 			$cats[$row['id']] = array(
@@ -181,7 +181,7 @@ class medals
 						WHERE user_id = {$user_id}
 						ORDER BY medal_id AND nominated";
 				$result = $this->db->sql_query($sql);
-				$my_medals = array();
+				$my_medals = [];
 				while ($row = $this->db->sql_fetchrow($result))
 				{
 					$awarded_by_me = (isset($my_medals[$row['medal_id']]['awarded_by_me']) && $row['nominated'] == 1) ? $my_medals[$row['medal_id']]['awarded_by_me'] : 0;
@@ -341,7 +341,7 @@ class medals
 						WHERE user_id = {$user_id}
 						ORDER BY medal_id AND nominated";
 				$result = $this->db->sql_query($sql);
-				$my_medals = array();
+				$my_medals = [];
 				while ($row = $this->db->sql_fetchrow($result))
 				{
 					if ( isset($my_medals[$row['medal_id']]['count']) )
@@ -359,7 +359,7 @@ class medals
 				$sql = "SELECT user_id, username, user_colour
 					FROM " . USERS_TABLE . "
 					WHERE user_id = {$user_id}";
-				$result = $this->db->sql_query($sql);
+				$result = $this->db->sql_query_limit($sql, 1, 0, self::HOUR_TTL);
 				$row = $this->db->sql_fetchrow($result);
 				$this->db->sql_freeresult($result);
 
@@ -433,7 +433,6 @@ class medals
 				}
 
 				$bbcode_status	= ($this->config['allow_bbcode']) ? true : false;
-				$smilies_status	= ($bbcode_status && $this->config['allow_smilies']) ? true : false;
 				$img_status		= ($bbcode_status) ? true : false;
 				$url_status		= ($bbcode_status && $this->config['allow_post_links']) ? true : false;
 				$flash_status	= ($bbcode_status) ? true : false;
@@ -469,7 +468,7 @@ class medals
 				$sql = "SELECT user_id, username, user_colour
 					FROM " . USERS_TABLE . "
 					WHERE user_id = {$user_id}";
-				$result = $this->db->sql_query($sql);
+				$result = $this->db->sql_query_limit($sql, 1, 0, self::HOUR_TTL);
 				$row = $this->db->sql_fetchrow($result);
 				$this->db->sql_freeresult($result);
 
@@ -480,8 +479,7 @@ class medals
 						WHERE user_id = {$user_id}
 							AND nominated <> 1" ;
 				$result3 = $this->db->sql_query($sql3);
-				$s_medals = false;
-				$users_medals = array();
+				$users_medals = [];
 				while ($row3 = $this->db->sql_fetchrow($result3))
 				{
 					$awarder_name = get_username_string('full', $row3['awarder_id'], $row3['awarder_un'], $row3['awarder_color'], $row3['awarder_un']) ;
@@ -499,11 +497,10 @@ class medals
 						'MEDAL_REASON'		=> $message,
 						'ID'				=> $row3['id'],
 					);
-					$s_medals = true;
 				}
 				$this->db->sql_freeresult($result3);
 
-				$my_medals_arr = array();
+				$my_medals_arr = [];
 				ksort($users_medals);
 				foreach ($users_medals as $key => $value)
 				{
@@ -584,37 +581,27 @@ class medals
 					trigger_error(sprintf($this->user->lang['NO_MEDAL_MSG'], $return_to));
 				}
 
-				$username = array();
-				if (sizeof($user_id) > 1 )
-				{
-					foreach ($this->uid as $user_id)
-					{
-						// Change usernames to ids
-						$sql = "SELECT user_id
-							FROM " . USERS_TABLE . "
-							WHERE username = {$this->uid}" ;
-						$result = $this->db->sql_query($sql);
-						$row = $this->db->sql_fetchrow($result);
-						$this->db->sql_freeresult($result);
+				$user_id_list = sizeof($user_id) > 1 ? $user_id : [$user_id];
+				unset($user_id);
 
-						$username[] = $row['user_id'] ;
-					}
-				}
-				else
+				$award_rows = [];
+				$sql = "SELECT count(*) as count, user_id
+					FROM " . $this->tb_medals_awarded . "
+					WHERE medal_id = $medal_id
+						AND nominated = 0
+						AND " . $this->db->sql_in_set('user_id', $user_id);
+				$result = $this->db->sql_query($sql);
+				while($row = $this->db->sql_fetchrow($result))
 				{
-					$username[] = $user_id ;
+					$award_rows[] = $row;
 				}
+				$this->db->sql_freeresult($result);
 
-				foreach ($username as $user_id)
+				foreach ($user_id_list as $user_id)
 				{
-					$sql = "SELECT count(*) as count
-						FROM " . $this->tb_medals_awarded . "
-						WHERE medal_id = {$medal_id}
-							AND user_id = {$user_id}
-							AND nominated = 0" ;
-					$result = $this->db->sql_query($sql);
-					$row = $this->db->sql_fetchrow($result);
-					$this->db->sql_freeresult($result);
+					$row = array_filter($award_rows, function($value, $key) use ($user_id) {
+						return $key === 'user_id' && $value === $user_id;
+					}, ARRAY_FILTER_USE_BOTH);
 
 					if ($row['count'] >= $medals[$medal_id]['number'])
 					{
@@ -653,7 +640,7 @@ class medals
 							FROM " . $this->tb_medals_awarded . "
 							WHERE id = {$med_id}
 							LIMIT 1";
-						$result = $this->db->sql_query($sql);
+						$result = $this->db->sql_query_limit($sql, 1);
 						$row = $this->db->sql_fetchrow($result);
 						$this->db->sql_freeresult($result);
 
@@ -697,7 +684,7 @@ class medals
 						WHERE medal_id = {$medal_id}
 						  AND user_id = {$user_id}
 						  AND nominated = 0" ;
-				$result = $this->db->sql_query($sql);
+				$result = $this->db->sql_query_limit($sql, 1);
 				$row = $this->db->sql_fetchrow($result);
 				$this->db->sql_freeresult($result);
 
@@ -711,7 +698,7 @@ class medals
 				$sql = "SELECT *
 						FROM " . $this->tb_medals_awarded . "
 						WHERE id = {$med_id}" ;
-				$result = $this->db->sql_query($sql);
+				$result = $this->db->sql_query_limit($sql, 1);
 				$row = $this->db->sql_fetchrow($result);
 				$this->db->sql_freeresult($result);
 
@@ -732,15 +719,15 @@ class medals
 				$sql = 'SELECT user_id, username, user_colour
 						FROM ' . USERS_TABLE . "
 						WHERE user_id = {$user_id}";
-					$result = $this->db->sql_query($sql);
-					$row = $this->db->sql_fetchrow($result);
-					$this->db->sql_freeresult($result);
+				$result = $this->db->sql_query_limit($sql, 1, 0, self::HOUR_TTL);
+				$row = $this->db->sql_fetchrow($result);
+				$this->db->sql_freeresult($result);
 				$username = get_username_string('full', $row['user_id'], $row['username'], $row['user_colour'], $row['username']);
 
 				$sql = "SELECT ma.*, m.name
-						FROM " . $this->tb_medals_awarded . " as ma, " . $this->tb_medal . " as m
+						FROM " . $this->tb_medals_awarded . " AS ma
+						JOIN " . $this->tb_medal . " AS m ON m.id = ma.medal_id
 						WHERE ma.user_id = {$user_id}
-						  AND ma.medal_id = m.id
 						  AND ma.nominated <> 0";
 				$result = $this->db->sql_query($sql);
 				$i = 0;
@@ -819,13 +806,12 @@ class medals
 				}
 
 				$sql = "SELECT u.username, u.user_colour, ma.*
-						FROM " . USERS_TABLE . " u, " . $this->tb_medals_awarded . " ma
-						WHERE u.user_id = ma.user_id
-							AND ma.nominated = 1
-							AND ma.medal_id = {$med_id}
+						FROM " . USERS_TABLE . " u
+						JOIN " . $this->tb_medals_awarded . " ma ON u.user_id = ma.user_id
+						WHERE ma.nominated = 1 AND ma.medal_id = {$med_id}
 						ORDER BY u.username_clean";
 				$result = $this->db->sql_query($sql);
-				$users_medals = array();
+				$users_medals = [];
 				$i = 1;
 				while ($row = $this->db->sql_fetchrow($result))
 				{
@@ -913,36 +899,32 @@ class medals
 					}
 
 					$usernames = explode("\n", $usernames) ;
+					$username_list = [];
 					foreach ($usernames as $value)
 					{
-						$username[] = $this->db->sql_escape(utf8_clean_string($value));
+						$username_list[] = $this->db->sql_escape(utf8_clean_string($value));
 					}
+					unset($usernames);
 
-					$award_user = $not_award_user = $awarded_user = $no_such_user = array() ;
+					$award_user = $not_award_user = $awarded_user = [] ;
 
-					// Change usernames to ids
-					$sql = 'SELECT user_id, username, username_clean
-							FROM ' . USERS_TABLE . '
-							WHERE ' . $this->db->sql_in_set('username_clean', $username) ;
+					$sql = "SELECT count(*) as number, u.user_id, u.username_clean
+							FROM " . $this->tb_medals_awarded . " ba
+							JOIN " . USERS_TABLE . " u ON u.user_id = ba.user_id
+							WHERE ba.medal_id = {$med_id}
+							  AND " . $this->db->sql_in_set('u.username_clean', $username_list);
+
 					$result = $this->db->sql_query($sql);
 					while ($row = $this->db->sql_fetchrow($result))
 					{
-						$sql = "SELECT count(*) as number
-								FROM " . $this->tb_medals_awarded . "
-								WHERE medal_id = {$med_id}
-									AND user_id = {$row['user_id']}" ;
-						$result2 = $this->db->sql_query($sql);
-						$row2 = $this->db->sql_fetchrow($result2);
-						$this->db->sql_freeresult($result2);
-
-						if ($row2['number'] < $medals[$med_id]['number'])
+						if ($row['number'] < $medals[$med_id]['number'])
 						{
 							$award_user[] = $row['user_id'] ;
 							$awarded_user[] = $row['username_clean'] ;
 						}
 					}
 					$this->db->sql_freeresult($result);
-					$not_award_user = array_diff($username, $awarded_user);
+					$not_award_user = array_diff($username_list, $awarded_user);
 					// Call award_medal function
 					$time = time() ;
 					if (sizeof($award_user))
@@ -967,14 +949,14 @@ class medals
 				}
 
 				$sql = "SELECT u.username, u.user_colour, ma.user_id
-						FROM " . USERS_TABLE . " u, " . $this->tb_medals_awarded . " ma
-						WHERE u.user_id = ma.user_id
-							AND ma.nominated = 0
-							AND ma.medal_id = {$med_id}
+						FROM " . USERS_TABLE . " u
+						JOIN " . $this->tb_medals_awarded . " ma ON u.user_id = ma.user_id
+						WHERE ma.medal_id = {$med_id}
+						  AND ma.nominated = 0
 						GROUP BY ma.user_id, u.username, ma.medal_id
 						ORDER BY u.username";
 				$result = $this->db->sql_query($sql);
-				$users_medals = array();
+				$users_medals = [];
 				$i = 1;
 				while ($row = $this->db->sql_fetchrow($result))
 				{
@@ -1012,12 +994,12 @@ class medals
 
 			default:
 				$sql = "SELECT u.username, u.user_colour, ma.user_id, ma.medal_id, ma.nominated
-						FROM " . USERS_TABLE . " u, " . $this->tb_medals_awarded . " ma
-						WHERE u.user_id = ma.user_id
+						FROM " . USERS_TABLE . " u
+						JOIN " . $this->tb_medals_awarded . " ma ON u.user_id = ma.user_id
 						GROUP BY ma.nominated, ma.user_id, u.username, ma.medal_id
 						ORDER BY u.username_clean";
 				$result = $this->db->sql_query($sql);
-				$users_medals = array();
+				$users_medals = [];
 				$i = 1;
 				while ($row = $this->db->sql_fetchrow($result))
 				{
@@ -1099,13 +1081,10 @@ class medals
 
 	private function getfirstcat()
 	{
-		$sql = "SELECT * FROM " . $this->tb_medals_cats . "
-			ORDER BY order_id ASC";
+		$sql = "SELECT id FROM " . $this->tb_medals_cats . "
+				ORDER BY order_id ASC";
 		$result = $this->db->sql_query_limit($sql, 1, 0, self::HOUR_TTL);
-		while ($row = $this->db->sql_fetchrow($result))
-		{
-			$cat = $row['id'];
-		}
+		$cat = $this->db->sql_fetchfield('id');
 		$this->db->sql_freeresult($result);
 		return $cat;
 	}
@@ -1137,11 +1116,13 @@ class medals
 					WHERE id = {$update}
 					LIMIT 1";
 
-			$result = $this->db->sql_query($sql);
+			$result = $this->db->sql_query_limit($sql, 1);
 			$row = $this->db->sql_fetchrow($result);
 			$this->db->sql_freeresult($result);
 
-			$color = $row['awarder_color'] <> "" ? '[color=#' . $row['awarder_color'] . ']' . $row['awarder_un'] . '[/color]': $row['awarder_un'] ;
+			$color = $row['awarder_color'] <> "" ? '[color=#' . $row['awarder_color'] . ']' . $row['awarder_un'] . '[/color]': $row['awarder_un'];
+
+			$sql = '';
 		}
 		else
 		{
@@ -1163,9 +1144,13 @@ class medals
 
 			$color = $this->user->data['user_colour'] ? '[color=#' . $this->user->data['user_colour'] . ']' . $this->user->data['username'] . '[/color]': $this->user->data['username'] ;
 		}
-		$result = $this->db->sql_query($sql);
 
-		$message = generate_text_for_edit($message,$this->uid,$this->m_flags);
+		if ($sql != '')
+		{
+			$result = $this->db->sql_query($sql);
+		}
+
+		$message = generate_text_for_edit($message, $this->uid, $this->m_flags);
 		$message = isset($message['text']) ? $message['text'] : '';
 
 		if ($result && $this->points_enable == 1)
@@ -1176,8 +1161,8 @@ class medals
 			$this->db->sql_query($sql);
 		}
 
-		$message2  = sprintf($this->user->lang['PM_MESSAGE'], '[img]' . $medals[$medal_id]['image'] . '[/img]', $medals[$medal_id]['name'], $color );
-		$message2  .= $message;
+		$message2 = sprintf($this->user->lang['PM_MESSAGE'], '[img]' . $medals[$medal_id]['image'] . '[/img]', $medals[$medal_id]['name'], $color );
+		$message2 .= $message;
 		if ($this->points_enable == 1)
 		{
 			if ($points < 0)

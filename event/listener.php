@@ -32,6 +32,8 @@ class listener implements EventSubscriberInterface
 	/** @var \phpbb\db\driver\driver_interface */
 	protected $db;
 
+	const FIVE_MIN_TTL = 300;
+
 	public function __construct(\phpbb\user $user, \phpbb\auth\auth $auth, \phpbb\config\config $config, \phpbb\template\template $template, \phpbb\controller\helper $helper, \phpbb\db\driver\driver_interface $db, $tb_medals, $tb_medals_awarded, $tb_medals_cats, $memberlist, $viewtopic)
 	{
 		$this->user = $user;
@@ -148,18 +150,25 @@ class listener implements EventSubscriberInterface
 
 			if ($this->config['medal_display_topic'] && $medals_count)
 			{
-				$medals = '';
+				$rowset_medals = [];
 				$sql = "SELECT m.id, m.name, m.image, m.device, m.dynamic, m.parent, ma.time, c.id as cat_id, c.name as cat_name
-					FROM " . $this->tb_medal . " m, " . $this->tb_medals_awarded . " ma, " . $this->tb_medals_cats . " c
-						WHERE ma.user_id = '" . $poster_id . "'
-							AND m.parent = c.id
-							AND m.id = ma.medal_id
-							AND ma.nominated <> 1
-					ORDER BY c.order_id, m.order_id, ma.time";
-				if ($result = $this->db->sql_query($sql))
+						FROM " . $this->tb_medal . " m
+						JOIN " . $this->tb_medals_awarded . " ma ON ma.medal_id = m.id
+						JOIN " . $this->tb_medals_cats . " c ON c.id = m.parent
+						WHERE ma.user_id = $poster_id
+						  AND ma.nominated <> 1
+						ORDER BY c.order_id ASC, m.order_id ASC, ma.time DESC";
+				$result = $this->db->sql_query($sql, self::FIVE_MIN_TTL);
+				while($row = $this->db->sql_fetchrow($result))
 				{
-					$rowset2 = array();
-					while ($row = $this->db->sql_fetchrow($result))
+					$rowset_medals[] = $row;
+				}
+				$this->db->sql_freeresult($result);
+
+				if (count($rowset_medals))
+				{
+					$rowset2 = [];
+					foreach ($rowset_medals as $row)
 					{
 						$rowset2[$row['image']]['name'] = $row['name'];
 						if ($rowset2[$row['image']]['name'] == $row['name'])
@@ -181,7 +190,6 @@ class listener implements EventSubscriberInterface
 					$post_row['MEDALS'] = $this->viewtopic->medal_row($rowset2);
 					$event['post_row'] = $post_row;
 				}
-				$this->db->sql_freeresult($result);
 			}
 		}
 	}

@@ -55,7 +55,7 @@ class medals_module
 				}
 				$this->new_config = $config;
 				$cfg_array = ($request->is_set('config')) ? utf8_normalize_nfc($request->variable('config', array('' => ''), true)) : $this->new_config;
-				$error = array();
+				$error = [];
 
 				// We validate the complete config if whished
 				validate_config_vars($display_vars['vars'], $cfg_array, $error);
@@ -147,7 +147,7 @@ class medals_module
 					FROM ' . MEDALS_TABLE . '
 					ORDER BY order_id ASC';
 				$result = $db->sql_query($sql);
-				$medals = array();
+				$medals = [];
 				while ($row = $db->sql_fetchrow($result))
 				{
 					$medals[$row['id']] = array(
@@ -170,7 +170,7 @@ class medals_module
 					FROM ' . MEDALS_CATS_TABLE . '
 					ORDER BY order_id ASC';
 				$result = $db->sql_query($sql);
-				$cats = array();
+				$cats = [];
 				while ($row = $db->sql_fetchrow($result))
 				{
 					$cats[$row['id']] = array(
@@ -234,7 +234,7 @@ class medals_module
 						FROM ' . MEDALS_TABLE . '
 						ORDER BY order_id ASC';
 				$result = $db->sql_query($sql);
-				$medals = array();
+				$medals = [];
 				while ($row = $db->sql_fetchrow($result))
 				{
 					$medals[$row['id']] = array(
@@ -320,27 +320,24 @@ class medals_module
 
 				$dir = $phpbb_root_path . 'images/medals/';
 				$options = '<option value=""></option>';
-				if ($dh = opendir($dir))
+				$files = scandir($dir);
+				foreach ($files as $file)
 				{
-					while (($file = readdir($dh)) !== false)
+					if (strlen($file) >= 3 && ( strpos($file, '.gif',1) || strpos($file, '.jpg',1) || strpos($file, '.png',1) ))
 					{
-						if (strlen($file) >= 3 && ( strpos($file, '.gif',1) || strpos($file, '.jpg',1) || strpos($file, '.png',1) ))
+						if ($medals[$medal_id]['image'] == $file)
 						{
-							if ($medals[$medal_id]['image'] == $file)
-							{
-								$options .= '<option value="' . $file . '" selected="selected">' . $file . '</option>';
-							}
-							else
-							{
-								$options .= '<option value="' . $file . '">' . $file . '</option>';
-							}
+							$options .= '<option value="' . $file . '" selected="selected">' . $file . '</option>';
+						}
+						else
+						{
+							$options .= '<option value="' . $file . '">' . $file . '</option>';
 						}
 					}
-					closedir($dh);
 				}
 
 				$options2 = '';
-				foreach ($cats as $key => $value)
+				foreach($cats as $key => $value)
 				{
 					if ($medals[$medal_id]['parent'] == $value['id'])
 					{
@@ -477,20 +474,17 @@ class medals_module
 
 				$dir = $phpbb_root_path . 'images/medals/';
 				$options = '<option value=""></option>';
-				if ($dh = opendir($dir))
+				$files = scandir($dir);
+				foreach ($files as $file)
 				{
-					while (($file = readdir($dh)) !== false)
+					if (strlen($file) >= 3 && ( strpos($file, '.gif',1) || strpos($file, '.jpg',1) || strpos($file, '.png',1) ))
 					{
-						if (strlen($file) >= 3 && ( strpos($file, '.gif',1) || strpos($file, '.jpg',1) || strpos($file, '.png',1) ))
-						{
-							$options .= '<option value="' . $file . '">' . $file . '</option>';
-						}
+						$options .= '<option value="' . $file . '">' . $file . '</option>';
 					}
-					closedir($dh);
 				}
 
 				$options2 = '';
-				foreach ($cats as $key => $value)
+				foreach($cats as $key => $value)
 				{
 					if ($key == $cat_id)
 					{
@@ -542,7 +536,7 @@ class medals_module
 							FROM ' . MEDALS_CATS_TABLE . '
 							ORDER BY order_id ASC';
 				$result = $db->sql_query($sql);
-				$cats = array();
+				$cats = [];
 				while ($row = $db->sql_fetchrow($result))
 				{
 					$cats[$row['id']] = array(
@@ -584,7 +578,7 @@ class medals_module
 				if (!$request->is_set_post('deleteall') && !$request->is_set_post('moveall'))
 				{
 					$options2 = '';
-					foreach ($cats as $key => $value)
+					foreach($cats as $key => $value)
 					{
 						if ($value['id'] != $cat_id)
 						{
@@ -657,7 +651,7 @@ class medals_module
 
 		if (empty($submode))
 		{
-			switch ($mode)
+			switch($mode)
 			{
 				case 'config':
 					$this->tpl_name = 'acp_medals_config';
@@ -667,7 +661,7 @@ class medals_module
 				case 'management':
 					$this->tpl_name = 'acp_medals';
 					$this->page_title = $user->lang['ACP_MEDALS_INDEX'];
-					foreach ($cats as $key2 => $value2)
+					foreach($cats as $key2 => $value2)
 					{
 						$template->assign_block_vars('medals', array(
 							'U_EDIT'			=> append_sid('index.php?i=' . $id . '&mode=management&submode=editcat&catid=' . $value2['id']),

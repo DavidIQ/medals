@@ -101,6 +101,7 @@ $lang = array_merge($lang, array(
 	'MEDAL_AWARD_PANEL'				=> 'Medals Award Panel',
 	'MEDAL_NOM_BY'					=> 'Nominated by',
 	'MEDAL_AMOUNT'					=> 'Amount',
+	'MEDAL_VIEW_ALL'				=> 'View all medals',
 
 // Error messages
 	'CANNOT_AWARD_MULTIPLE'	=> 'This user has been awarded the maximum amount assigned to this medal',

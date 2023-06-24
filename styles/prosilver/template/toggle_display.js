@@ -70,4 +70,10 @@ function hdr_toggle(object, open_close)
 	{
 		object.style.display = 'none';
 	}
+
+	var locationHref = window.location.href;
+	if (locationHref.indexOf('#') > -1) {
+		locationHref = locationHref.split('#')[0];
+	}
+	window.location = locationHref + '#toggle_medal';
 }

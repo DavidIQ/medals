@@ -70,19 +70,20 @@ class medals_memberlist
 		$sql = "SELECT id, name
 			FROM " . $this->tb_medals_cats . "
 			ORDER BY order_id";
+
 		if (!($result = $this->db->sql_query($sql, self::HOUR_TTL)))
 		{
 			message_die(GENERAL_ERROR, 'Could not query medal categories list', '', __LINE__, __FILE__, $sql);
 		}
 
-		$category_rows = array();
+		$category_rows = [];
 		while ($row = $this->db->sql_fetchrow($result))
 		{
 			$category_rows[] = $row;
 		}
 		$this->db->sql_freeresult($result);
 
-		$sql = "SELECT m.medal_id, m.user_id
+		$sql = "SELECT COUNT(m.medal_id)
 			FROM " . $this->tb_medals_awarded . " m
 			WHERE m.user_id = {$user_id}
 				AND m.nominated = 0";
@@ -126,164 +127,178 @@ class medals_memberlist
 			'L_MEDAL_DETAIL'		=> $this->user->lang['MEDAL_DETAIL'],
 		));
 
+		if (!count($category_rows))
+		{
+			return;
+		}
+
+		$sql = "SELECT m.id, m.name, m.description, m.image, m.device, m.dynamic, m.parent,
+					ma.nominated_reason, ma.time, ma.awarder_id, ma.awarder_un, ma.awarder_color, ma.bbuid, ma.bitfield,
+					c.id as cat_id, c.name as cat_name
+				FROM " . $this->tb_medal . " m
+				JOIN " . $this->tb_medals_awarded . " ma ON m.id = ma.medal_id
+				JOIN " . $this->tb_medals_cats . " c ON m.parent = c.id
+				WHERE ma.user_id = {$user_id}
+				  AND ma.nominated = 0
+				ORDER BY c.order_id, m.order_id, ma.time";
+		$result = $this->db->sql_query($sql);
+		$user_awards_row = [];
+		while ($row = $this->db->sql_fetchrow($result))
+		{
+			$user_awards_row[] = $row;
+		}
+		$this->db->sql_freeresult($result);
+
+		if (!count($user_awards_row))
+		{
+			return;
+		}
+
 		for ($i = 0; $i < count($category_rows); $i++)
 		{
 			$cat_id = $category_rows[$i]['id'];
-
-			$sql = "SELECT m.id, m.name, m.description, m.image, m.device, m.dynamic, m.parent,
-						ma.nominated_reason, ma.time, ma.awarder_id, ma.awarder_un, ma.awarder_color, ma.bbuid, ma.bitfield,
-						c.id as cat_id, c.name as cat_name
-					FROM " . $this->tb_medal . " m, " . $this->tb_medals_awarded . " ma, " . $this->tb_medals_cats . " c
-					WHERE ma.user_id = {$user_id}
-						AND m.parent = c.id
-						AND m.id = ma.medal_id
-						AND ma.nominated = 0
-					ORDER BY c.order_id, m.order_id, ma.time";
-			if ($result = $this->db->sql_query($sql))
+			$rowset = [];
+			$medal_time = $this->user->lang['AWARD_TIME'] . ':&nbsp;';
+			$medal_reason = $this->user->lang['MEDAL_AWARD_REASON'] . ':&nbsp;';
+			foreach ($user_awards_row as $row)
 			{
-				$row = array();
-				$rowset = array();
-				$medal_time = $this->user->lang['AWARD_TIME'] . ':&nbsp;';
-				$medal_reason = $this->user->lang['MEDAL_AWARD_REASON'] . ':&nbsp;';
-				while ($row = $this->db->sql_fetchrow($result))
+				$medal_id = $row['id'];
+				if (!isset($rowset[$medal_id]))
 				{
-					if (empty($rowset[$row['name']]))
+					$rowset[$medal_id]['name'] = $row['name'];
+					$rowset[$medal_id]['cat_id'] = $row['cat_id'];
+					$rowset[$medal_id]['cat_name'] = $row['cat_name'];
+					if (isset($rowset[$medal_id]['description']))
 					{
-						$rowset[$row['name']]['cat_id'] = $row['cat_id'];
-						$rowset[$row['name']]['cat_name'] = $row['cat_name'];
-						if (isset($rowset[$row['name']]['description']))
-						{
-							$rowset[$row['name']]['description'] .= $row['description'];
-						}
-						else
-						{
-							$rowset[$row['name']]['description'] = $row['description'];
-						}
-						$rowset[$row['name']]['image'] = generate_board_url() . '/images/medals/' . $row['image'];
-						$rowset[$row['name']]['device'] = generate_board_url() . '/images/medals/devices/' . $row['device'];
-						$rowset[$row['name']]['dynamic'] = $row['dynamic'];
-					}
-					$row['nominated_reason'] = ($row['nominated_reason']) ? $row['nominated_reason'] : 'Medal_no_reason';
-					$awarder_name = "";
-					if ($row['awarder_id'])
-					{
-						$awarder_name = "<br />" . $this->user->lang['AWARDED_BY'] . ": " . get_username_string('full', $row['awarder_id'], $row['awarder_un'], $row['awarder_color'], $row['awarder_un']) ;
-					}
-					//generate_text_for_storage($row['nominated_reason'], $uid, $bitfield, $m_flags, $allow_bbcode, $allow_urls, $allow_smilies);
-					$reason = generate_text_for_display($row['nominated_reason'], $row['bbuid'], $row['bitfield'], $m_flags);
-					if (isset($rowset[$row['name']]['medal_issue']))
-					{
-						$rowset[$row['name']]['medal_issue'] .= $medal_time . $this->user->format_date($row['time']) . $awarder_name . '</td></tr><tr><td>' . $medal_reason . '<div class="content">' . $reason . '</div><hr />';
+						$rowset[$medal_id]['description'] .= $row['description'];
 					}
 					else
 					{
-						$rowset[$row['name']]['medal_issue'] = $medal_time . $this->user->format_date($row['time']) . $awarder_name . '</td></tr><tr><td>' . $medal_reason . '<div class="content">' . $reason . '</div><hr />';
+						$rowset[$medal_id]['description'] = $row['description'];
 					}
-					if (isset($rowset[$row['name']]['medal_count']))
-					{
-						$rowset[$row['name']]['medal_count'] += '1';
-					}
-					else
-					{
-						$rowset[$row['name']]['medal_count'] = '1';
-					}
+					$rowset[$medal_id]['image'] = generate_board_url() . '/images/medals/' . $row['image'];
+					$rowset[$medal_id]['device'] = generate_board_url() . '/images/medals/devices/' . $row['device'];
+					$rowset[$medal_id]['dynamic'] = $row['dynamic'];
+				}
+				$row['nominated_reason'] = ($row['nominated_reason']) ? $row['nominated_reason'] : 'Medal_no_reason';
+				$awarder_name = "";
+				if ($row['awarder_id'])
+				{
+					$awarder_name = "<br />" . $this->user->lang['AWARDED_BY'] . ": " . get_username_string('full', $row['awarder_id'], $row['awarder_un'], $row['awarder_color'], $row['awarder_un']) ;
+				}
+				//generate_text_for_storage($row['nominated_reason'], $uid, $bitfield, $m_flags, $allow_bbcode, $allow_urls, $allow_smilies);
+				$reason = generate_text_for_display($row['nominated_reason'], $row['bbuid'], $row['bitfield'], $m_flags);
+				if (isset($rowset[$medal_id]['medal_issue']))
+				{
+					$rowset[$medal_id]['medal_issue'] .= $medal_time . $this->user->format_date($row['time']) . $awarder_name . '</td></tr><tr><td>' . $medal_reason . '<div class="content">' . $reason . '</div><hr />';
+				}
+				else
+				{
+					$rowset[$medal_id]['medal_issue'] = $medal_time . $this->user->format_date($row['time']) . $awarder_name . '</td></tr><tr><td>' . $medal_reason . '<div class="content">' . $reason . '</div><hr />';
+				}
+				if (isset($rowset[$medal_id]['medal_count']))
+				{
+					$rowset[$medal_id]['medal_count'] += '1';
+				}
+				else
+				{
+					$rowset[$medal_id]['medal_count'] = '1';
+				}
+			}
+
+			$medal_width = ($this->config['medal_small_img_width']) ? ' width="'.$this->config['medal_small_img_width'].'"' : '';
+			$medal_height = ($this->config['medal_small_img_ht']) ? ' height="'.$this->config['medal_small_img_ht'].'"' : '';
+
+			$data = [];
+
+			//
+			// Should we display this category/medal set?
+			//
+			$display_medal = 0;
+			$numberofmedals = 0;
+			$after_first_cat = 0;
+			$newcat = 1;
+
+			while (list($medal_id, $data) = @each($rowset))
+			{
+				$medal_name = $data['name']; //DavidIQ edit
+				if ($cat_id == $data['cat_id'])
+				{
+					$display_medal = 1;
 				}
 
-				$medal_width = ($this->config['medal_small_img_width']) ? ' width="'.$this->config['medal_small_img_width'].'"' : '';
-				$medal_height = ($this->config['medal_small_img_ht']) ? ' height="'.$this->config['medal_small_img_ht'].'"' : '';
-
-				$medal_name = array();
-				$data = array();
-
-				//
-				// Should we display this category/medal set?
-				//
-				$display_medal = 0;
-				$numberofmedals = 0;
-				$after_first_cat = 0;
-				$newcat = 1;
-
-				while (list($medal_name, $data) = @each($rowset))
+				$display_across = $this->config['medal_profile_across'] ? $this->config['medal_profile_across'] : 5 ;
+				if ($numberofmedals == $display_across)
 				{
-					if ($cat_id == $data['cat_id'])
-					{
-						$display_medal = 1;
-					}
+					$break = '<br />' ;
+					$numberofmedals = 0 ;
+				}
+				else
+				{
+					$break = '' ;
+				}
 
-					$display_across = $this->config['medal_profile_across'] ? $this->config['medal_profile_across'] : 5 ;
-					if ($numberofmedals == $display_across)
-					{
-						$break = '<br />' ;
-						$numberofmedals = 0 ;
-					}
-					else
-					{
-						$break = '' ;
-					}
+				if (!empty($newcat) && !empty($after_first_cat))
+				{
+					$break = '<hr />&nbsp;' ;
+					$numberofmedals = 0 ;
+				}
 
-					if (!empty($newcat) && !empty($after_first_cat))
+				$numberofmedals++ ;
+				if (!empty($display_medal))
+				{
+					if ($data['medal_count'] > 1)
 					{
-						$break = '<hr />&nbsp;' ;
-						$numberofmedals = 0 ;
-					}
-
-					$numberofmedals++ ;
-					if (!empty($display_medal))
-					{
-						if ($data['medal_count'] > 1)
+						if ($data['dynamic'])
 						{
-							if ($data['dynamic'])
-							{
-								$img_medals = $this->helper->route('bb3mobi_medals_controller', array(
-										'm' => 'mi',
-										'med' => $data['image'],
-										'd' => $data['device'] . '-' . ($data['medal_count'] - 1) . '.gif'
-									)
-								);
+							$img_medals = $this->helper->route('bb3mobi_medals_controller', array(
+									'm' => 'mi',
+									'med' => $data['image'],
+									'd' => $data['device'] . '-' . ($data['medal_count'] - 1) . '.gif'
+								)
+							);
 
-								$image = '<img src="' . $img_medals . '" alt="' . $medal_name . '" title="' . $medal_name . '" />' ;
-								$small_image = $break . '<img src="' . $img_medals . '" alt="' . $medal_name . '" title="' . $medal_name . '"' . $medal_width . $medal_height . ' />' ;
-							}
-							else
-							{
-								$cluster = '-' . $data['medal_count'] ;
-								$device_image = substr_replace($data['image'],$cluster, -4) . substr($data['image'], -4);
-								if (file_exists($device_image))
-								{
-									$data['image'] = $device_image;
-								}
-								$image = '<img src="' . $data['image'] . '" alt="' . $medal_name . '" title="' . $medal_name . '" />';
-								$small_image = $break . '<img src="' . $data['image'] . '" alt="' . $medal_name . '" title="' . $medal_name . '"' . $medal_width . $medal_height . ' />';
-							}
+							$image = '<img src="' . $img_medals . '" alt="' . $medal_name . '" title="' . $medal_name . '" />' ;
+							$small_image = $break . '<img src="' . $img_medals . '" alt="' . $medal_name . '" title="' . $medal_name . '"' . $medal_width . $medal_height . ' />' ;
 						}
 						else
 						{
+							$cluster = '-' . $data['medal_count'] ;
+							$device_image = substr_replace($data['image'],$cluster, -4) . substr($data['image'], -4);
+							if (file_exists($device_image))
+							{
+								$data['image'] = $device_image;
+							}
 							$image = '<img src="' . $data['image'] . '" alt="' . $medal_name . '" title="' . $medal_name . '" />';
 							$small_image = $break . '<img src="' . $data['image'] . '" alt="' . $medal_name . '" title="' . $medal_name . '"' . $medal_width . $medal_height . ' />';
 						}
-
-						$this->template->assign_block_vars('switch_display_medal.details', array(
-							'ISMEDAL_CAT' 		=> $newcat,
-							'MEDAL_CAT' 		=> $data['cat_name'],
-							'MEDAL_NAME' 		=> $medal_name,
-							'MEDAL_DESCRIPTION' => $data['description'],
-							'MEDAL_IMAGE' 		=> $image,
-							'MEDAL_IMAGE_SMALL' => $small_image,
-							'MEDAL_ISSUE' 		=> $data['medal_issue'],
-							'MEDAL_COUNT' 		=> $this->user->lang['MEDAL_AMOUNT'] . ': ' . $data['medal_count'],
-						));
-						$display_medal = 0;
-						$newcat = 0 ;
 					}
 					else
 					{
-						// New category lets put an hr between
-						$newcat = 1 ;
-						$after_first_cat = 1;
+						$image = '<img src="' . $data['image'] . '" alt="' . $medal_name . '" title="' . $medal_name . '" />';
+						$small_image = $break . '<img src="' . $data['image'] . '" alt="' . $medal_name . '" title="' . $medal_name . '"' . $medal_width . $medal_height . ' />';
 					}
+
+					$this->template->assign_block_vars('switch_display_medal.details', array(
+						'ISMEDAL_CAT' 		=> $newcat,
+						'MEDAL_CAT' 		=> $data['cat_name'],
+						'MEDAL_NAME' 		=> $medal_name,
+						'MEDAL_DESCRIPTION' => $data['description'],
+						'MEDAL_IMAGE' 		=> $image,
+						'MEDAL_IMAGE_SMALL' => $small_image,
+						'MEDAL_ISSUE' 		=> $data['medal_issue'],
+						'MEDAL_COUNT' 		=> $this->user->lang['MEDAL_AMOUNT'] . ': ' . $data['medal_count'],
+					));
+					$display_medal = 0;
+					$newcat = 0 ;
+				}
+				else
+				{
+					// New category lets put an hr between
+					$newcat = 1 ;
+					$after_first_cat = 1;
 				}
 			}
-			$this->db->sql_freeresult($result);
 		}
 	}
 }
