@@ -867,7 +867,7 @@ class medals
 						'MEDAL_AWARDED'		=> isset($awarded_users) ? $awarded_users : $this->user->lang['NO_MEDALS_ISSUED'],
 						'NOMINATED_USERS'	=> isset($nom_users) ? $nom_users : $this->user->lang['NO_MEDALS_NOMINATED'],
 						'S_DELETE_ALL'		=> isset($nom_users) ? true : false,
-						'U_MEDALS_ACTION'	=> "?m={$mode}d&med=$med_id",
+						'U_MEDALS_ACTION'	=> $this->helper->route('bb3mobi_medals_controller', ['m' => $mode, 'med' => $med_id]),
 						'U_FIND_USERNAME'	=> append_sid($phpbb_root_path . 'memberlist.' . $phpEx, 'mode=searchuser&amp;form=post&amp;field=add'),
 				));
 
@@ -980,7 +980,7 @@ class medals
 						'MEDAL_DESC'		=> $medals[$med_id]['description'],
 						'MEDAL_IMG'			=> '<img src="' . $medals[$med_id]['image'] . '">',
 						'MEDAL_AWARDED'		=> isset($awarded_users) ? $awarded_users : $this->user->lang['NO_MEDALS_ISSUED'],
-						'U_MEDALS_ACTION'	=> "?m=$mode&med=$med_id",
+						'U_MEDALS_ACTION'	=> $this->helper->route('bb3mobi_medals_controller', ['m' => $mode, 'med' => $med_id]),
 						'U_FIND_USERNAME'	=> append_sid($phpbb_root_path . 'memberlist.' . $phpEx, 'mode=searchuser&amp;form=post&amp;field=add'),
 				));
 
