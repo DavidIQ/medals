@@ -2,7 +2,7 @@
     "name": "bb3mobi/medals",
     "type": "phpbb-extension",
     "description": "A system for awarding medals to users.",
-    "homepage": "http://bb3.mobi",
+    "homepage": "https://github.com/bb3mobi/medals",
     "keywords": [ "medal", "rating", "system", "like", "award", "ribbons" ],
     "version": "1.1.0",
     "time": "2023-06-24",
