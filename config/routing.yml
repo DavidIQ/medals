@@ -1,9 +1,9 @@
 bb3mobi_medals_controller:
-    path: /medals
+    path: /badges
     defaults: { _controller: bb3mobi.medals.controller:medals_system }
 
 bb3mobi_medals_categorypage:
-    path: /medals/{category_id}
+    path: /badges/{category_id}
     defaults:
         _controller: bb3mobi.medals.controller:medals_category
         page: 1
@@ -12,7 +12,7 @@ bb3mobi_medals_categorypage:
         category_id: \d+
 
 bb3mobi_medals_awardsage:
-    path: /medals/awards/{user_id}
+    path: /badges/awards/{user_id}
     defaults:
         _controller: bb3mobi.medals.controller:medals_awards
         page: 1
