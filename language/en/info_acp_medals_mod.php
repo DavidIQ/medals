@@ -104,6 +104,8 @@ $lang = array_merge($lang, array(
 	'ACP_CONFIG_DESC'					=> 'Here you can set options for the Medal System 0.21.0',
 	'ACP_MEDALS_CONF_SETTINGS'			=> 'Medals Configuration Settings',
 	'ACP_MEDALS_CONF_SAVED'				=> 'Medals configuration saved<br /><br /> Click <a href="%s">here</a> to go the Medal\'s ACP Configuration',
+	'ACP_MEDALS_IMG_PATH'				=> 'Image path',
+	'ACP_MEDALS_IMG_PATH_EXPLAIN'		=> 'Enter the path relative to the forum root to where the images will be stored at starting and ending with a slash (/).',
 	'ACP_MEDALS_SM_IMG_WIDTH'			=> 'Small medal image width',
 	'ACP_MEDALS_SM_IMG_WIDTH_EXPLAIN'	=> 'The width (in pixels) to for medals displayed in the viewtopic and profile medal information section.<br />Set to 0 to not define a width.',
 	'ACP_MEDALS_SM_IMG_HT'				=> 'Small medal image height',

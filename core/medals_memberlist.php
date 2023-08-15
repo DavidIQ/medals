@@ -176,8 +176,8 @@ class medals_memberlist
 					{
 						$rowset[$medal_id]['description'] = $row['description'];
 					}
-					$rowset[$medal_id]['image'] = generate_board_url() . '/images/medals/' . $row['image'];
-					$rowset[$medal_id]['device'] = generate_board_url() . '/images/medals/devices/' . $row['device'];
+					$rowset[$medal_id]['image'] = generate_board_url() . $this->config['medals_images_path'] . $row['image'];
+					$rowset[$medal_id]['device'] = generate_board_url() . $this->config['medals_images_path'] . 'devices/' . $row['device'];
 					$rowset[$medal_id]['dynamic'] = $row['dynamic'];
 				}
 				$row['nominated_reason'] = ($row['nominated_reason']) ? $row['nominated_reason'] : 'Medal_no_reason';

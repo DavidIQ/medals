@@ -40,6 +40,7 @@ class medals_module
 					'vars'	=> array(
 						'legend1'				=> 'ACP_MEDALS_CONF_SETTINGS',
 						'medals_active' 		=> array('lang' => 'ACP_MEDALS_ACTIVATE',		'validate' => 'int',	'type' => 'radio:yes_no', 'explain' => false),
+						'medals_images_path'	=> array('lang' => 'ACP_MEDALS_IMG_PATH',		'validate' => 'string',	'type' => 'text:15:100', 'explain' => true),
 						'medal_small_img_width' => array('lang' => 'ACP_MEDALS_SM_IMG_WIDTH',	'validate' => 'int',	'type' => 'text:3:3', 'explain' => true),
 						'medal_small_img_ht'	=> array('lang' => 'ACP_MEDALS_SM_IMG_HT',		'validate' => 'int',	'type' => 'text:3:3', 'explain' => true),
 						'medal_profile_across'	=> array('lang' => 'ACP_MEDALS_PROFILE_ACROSS', 'validate' => 'int',	'type' => 'text:2:2', 'explain' => true),
@@ -274,7 +275,7 @@ class medals_module
 						'U_MOVE_DOWN'		=> append_sid('index.php?i=' . $id . '&mode=management&submode=move&moveid=' . $value['id'] . '&movetype=1&catid=' . $cat_id),
 						'MEDAL_NOMINATED'	=> ($value['nominated']) ? $user->lang['YES'] : $user->lang['NO'],
 						'MEDAL_NUMBER'		=> $value['number'],
-						'MEDAL_IMAGE'		=> '<img src="' . $phpbb_root_path . 'images/medals/' . $value['image'] . '" title="' . $value['name'] . '" style="max-width: 60px; max-height: 60px;"/>',
+						'MEDAL_IMAGE'		=> '<img src="' . $phpbb_root_path . $config['medals_images_path'] . $value['image'] . '" title="' . $value['name'] . '" style="max-width: 60px; max-height: 60px;"/>',
 						'MEDAL_TITLE'		=> $value['name'],
 						'S_IS_MEDAL'		=> true,
 					));
@@ -354,8 +355,9 @@ class medals_module
 					'MEDAL_TEXT'			=> $user->lang['ACP_MEDAL_TEXT_EDIT'],
 					'NAME_VALUE'			=> $medals[$medal_id]['name'],
 					'DESC_VALUE'			=> $medals[$medal_id]['description'],
-					'MEDAL_IMAGE'			=> '<br /><img src="' . $phpbb_root_path . 'images/medals/' . $medals[$medal_id]['image'] . '" alt="" style="max-width: 60px; max-height: 60px;" />',
+					'MEDAL_IMAGE'			=> '<br /><img src="' . $phpbb_root_path . $config['medals_images_path'] . $medals[$medal_id]['image'] . '" alt="" style="max-width: 60px; max-height: 60px;" />',
 					'IMAGE_OPTIONS'			=> $options,
+					'IMAGES_PATH'			=> $config['medals_images_path'],
 					'DYNAMIC_CHECKED_NO'	=> ($medals[$medal_id]['dynamic']) ? '' : 'checked="checked"',
 					'DYNAMIC_CHECKED_YES'	=> ($medals[$medal_id]['dynamic']) ? 'checked="checked"' : '',
 					'DEVICE_VALUE'			=> $medals[$medal_id]['device'],
@@ -472,7 +474,7 @@ class medals_module
 				$this->tpl_name = 'acp_medals_new';
 				$this->page_title = $user->lang['ACP_MEDALS_INDEX'];
 
-				$dir = $phpbb_root_path . 'images/medals/';
+				$dir = $phpbb_root_path . $config['medals_images_path'];
 				$options = '<option value=""></option>';
 				$files = scandir($dir);
 				foreach ($files as $file)
@@ -501,6 +503,7 @@ class medals_module
 					'MEDAL_TEXT'			=> $user->lang['ACP_MEDAL_TEXT_ADD'],
 					'NAME_VALUE'			=> utf8_normalize_nfc(($request->is_set_post('medal_name')) ? $request->variable('medal_name', '', true) : ''),
 					'IMAGE_OPTIONS'			=> $options,
+					'IMAGES_PATH'			=> $config['medals_images_path'],
 					'PARENT_OPTIONS'		=> $options2,
 					'DYNAMIC_CHECKED_NO'	=> 'checked="checked"',
 					'DEVICE_VALUE'			=> 'device',

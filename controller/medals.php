@@ -102,7 +102,7 @@ class medals
 
 		$phpbb_root_path = $this->phpbb_root_path;
 		$phpEx = $this->php_ext;
-		$medals_path = generate_board_url() . '/images/medals';
+		$medals_path = generate_board_url() . $this->config['medals_images_path'];
 
 		include($phpbb_root_path . 'includes/functions_posting.' . $phpEx);
 		include($phpbb_root_path . 'includes/functions_display.' . $phpEx);
