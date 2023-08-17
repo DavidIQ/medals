@@ -30,6 +30,15 @@ class medals_memberlist
 	/** @var \phpbb\controller\helper */
 	protected $helper;
 
+	/** @var string */
+	protected $tb_medals;
+
+	/** @var string */
+	protected $tb_medals_awarded;
+
+	/** @var string */
+	protected $tb_medals_cats;
+
 	const HOUR_TTL = 3600;
 
 	public function __construct(\phpbb\user $user, \phpbb\auth\auth $auth, \phpbb\config\config $config, \phpbb\template\template $template, \phpbb\db\driver\driver_interface $db, $tb_medals, $tb_medals_awarded, $tb_medals_cats, $helper)
@@ -39,7 +48,7 @@ class medals_memberlist
 		$this->config = $config;
 		$this->template = $template;
 		$this->db = $db;
-		$this->tb_medal = $tb_medals;
+		$this->tb_medals = $tb_medals;
 		$this->tb_medals_awarded = $tb_medals_awarded;
 		$this->tb_medals_cats = $tb_medals_cats;
 
@@ -73,7 +82,7 @@ class medals_memberlist
 
 		if (!($result = $this->db->sql_query($sql, self::HOUR_TTL)))
 		{
-			message_die(GENERAL_ERROR, 'Could not query medal categories list', '', __LINE__, __FILE__, $sql);
+			die('Could not query medal categories list');
 		}
 
 		$category_rows = [];
@@ -83,40 +92,36 @@ class medals_memberlist
 		}
 		$this->db->sql_freeresult($result);
 
-		$sql = "SELECT COUNT(m.medal_id)
+		$sql = "SELECT COUNT(m.medal_id) AS medal_count
 			FROM " . $this->tb_medals_awarded . " m
 			WHERE m.user_id = {$user_id}
 				AND m.nominated = 0";
-
-		if ($result = $this->db->sql_query($sql))
-		{
-			$medal_list = $this->db->sql_fetchrowset($result);
-			$medal_count = count($medal_list);
-
-			if ($medal_count)
-			{
-				$this->template->assign_block_vars('switch_display_medal', array());
-
-				$this->template->assign_block_vars('switch_display_medal.medal', array(
-					'MEDAL_BUTTON' => '<input type="button" class="button2" onclick="hdr_toggle(\'toggle_medal\',\'medal_open_close\')" value="' . $this->user->lang['MEDALS_VIEW_BUTTON'] . '"/>'
-				));
-			}
-		}
+		$result = $this->db->sql_query($sql);
+		$medal_count = $this->db->sql_fetchfield('medal_count');
 		$this->db->sql_freeresult($result);
+
+		if ($medal_count)
+		{
+			$this->template->assign_block_vars('switch_display_medal', []);
+
+			$this->template->assign_block_vars('switch_display_medal.medal', [
+				'MEDAL_BUTTON' => '<input type="button" class="button2" onclick="hdr_toggle(\'toggle_medal\',\'medal_open_close\')" value="' . $this->user->lang['MEDALS_VIEW_BUTTON'] . '"/>'
+			]);
+		}
 
 		$u_nominate = '';
 		if ($s_nominate)
 		{
-			$u_nominate = $this->helper->route('bb3mobi_medals_controller', array('m' => 'nominate', 'u' => $user_id));
+			$u_nominate = $this->helper->route('bb3mobi_medals_controller', ['m' => 'nominate', 'u' => $user_id]);
 		}
 
 		$u_can_award = '';
 		if ($this->auth->acl_get('a_user') || $is_mod)
 		{
-			$u_can_award = $this->helper->route('bb3mobi_medals_controller', array('m' => 'award', 'u' => $user_id));
+			$u_can_award = $this->helper->route('bb3mobi_medals_controller', ['m' => 'award', 'u' => $user_id]);
 		}
 
-		$this->template->assign_vars(array(
+		$this->template->assign_vars([
 			'USER_ID'				=> $user_id,
 			'U_NOMINATE'			=> $u_nominate,
 			'U_CAN_AWARD_MEDALS'	=> $u_can_award,
@@ -125,7 +130,7 @@ class medals_memberlist
 			'L_MEDAL_INFORMATION'	=> $this->user->lang['MEDAL_INFORMATION'],
 			'L_MEDAL_NAME'			=> $this->user->lang['MEDAL'],
 			'L_MEDAL_DETAIL'		=> $this->user->lang['MEDAL_DETAIL'],
-		));
+		]);
 
 		if (!count($category_rows))
 		{
@@ -135,7 +140,7 @@ class medals_memberlist
 		$sql = "SELECT m.id, m.name, m.description, m.image, m.device, m.dynamic, m.parent,
 					ma.nominated_reason, ma.time, ma.awarder_id, ma.awarder_un, ma.awarder_color, ma.bbuid, ma.bitfield,
 					c.id as cat_id, c.name as cat_name
-				FROM " . $this->tb_medal . " m
+				FROM " . $this->tb_medals . " m
 				JOIN " . $this->tb_medals_awarded . " ma ON m.id = ma.medal_id
 				JOIN " . $this->tb_medals_cats . " c ON m.parent = c.id
 				WHERE ma.user_id = {$user_id}
@@ -219,9 +224,9 @@ class medals_memberlist
 			$after_first_cat = 0;
 			$newcat = 1;
 
-			while (list($medal_id, $data) = @each($rowset))
+			foreach ($rowset as $medal_id => $data)
 			{
-				$medal_name = $data['name']; //DavidIQ edit
+				$medal_name = $data['name'];
 				if ($cat_id == $data['cat_id'])
 				{
 					$display_medal = 1;
@@ -251,11 +256,11 @@ class medals_memberlist
 					{
 						if ($data['dynamic'])
 						{
-							$img_medals = $this->helper->route('bb3mobi_medals_controller', array(
+							$img_medals = $this->helper->route('bb3mobi_medals_controller', [
 									'm' => 'mi',
 									'med' => $data['image'],
 									'd' => $data['device'] . '-' . ($data['medal_count'] - 1) . '.gif'
-								)
+								]
 							);
 
 							$image = '<img src="' . $img_medals . '" alt="' . $medal_name . '" title="' . $medal_name . '" />' ;
@@ -279,7 +284,7 @@ class medals_memberlist
 						$small_image = $break . '<img src="' . $data['image'] . '" alt="' . $medal_name . '" title="' . $medal_name . '"' . $medal_width . $medal_height . ' />';
 					}
 
-					$this->template->assign_block_vars('switch_display_medal.details', array(
+					$this->template->assign_block_vars('switch_display_medal.details', [
 						'ISMEDAL_CAT' 		=> $newcat,
 						'MEDAL_CAT' 		=> $data['cat_name'],
 						'MEDAL_NAME' 		=> $medal_name,
@@ -288,7 +293,7 @@ class medals_memberlist
 						'MEDAL_IMAGE_SMALL' => $small_image,
 						'MEDAL_ISSUE' 		=> $data['medal_issue'],
 						'MEDAL_COUNT' 		=> $this->user->lang['MEDAL_AMOUNT'] . ': ' . $data['medal_count'],
-					));
+					]);
 					$display_medal = 0;
 					$newcat = 0 ;
 				}
