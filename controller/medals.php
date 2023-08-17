@@ -168,34 +168,50 @@ class medals
 		}
 		$this->db->sql_freeresult($result);
 
-		$sql = "SELECT *
-			FROM " . $this->tb_medals_cats . "
-			ORDER BY order_id ASC";
+		$sql_array = [
+			'SELECT'	=> 'mc.*',
+			'FROM'			=> [ $this->tb_medals_cats => 'mc' ],
+			'ORDER_BY'		=> 'mc.order_id ASC',
+		];
+		if (empty($mode))
+		{
+			$sql_array['SELECT'] .= ', COUNT(DISTINCT m.id) AS medals_count, COUNT(ma.id) AS awards_count';
+			$sql_array['LEFT_JOIN'] = [
+				[
+					'FROM'	=> [ $this->tb_medals => 'm' ],
+					'ON'	=> 'm.parent = mc.id',
+				],
+				[
+					'FROM'	=> [ $this->tb_medals_awarded => 'ma' ],
+					'ON'	=> 'ma.medal_id = m.id',
+				]
+			];
+			$sql_array['GROUP_BY'] = 'mc.id';
+		}
+		$sql = $this->db->sql_build_query('SELECT_DISTINCT', $sql_array);
 		$result = $this->db->sql_query($sql, self::HOUR_TTL);
 		$cats = [];
 		while ($row = $this->db->sql_fetchrow($result))
 		{
-			$cats[$row['id']] = array(
-				'name' 		=> $row['name'],
-				'id'		=> $row['id'],
-				'order_id'	=> $row['order_id'],
-			);
-			$this->template->assign_block_vars('catlinkrow', array(
-				'U_CATPAGE'		=> $this->helper->route('bb3mobi_medals_controller', array('cat' => $row['id'])),
-				'MEDAL_CAT'		=> $row['name'],
-			));
+			$cats[$row['id']] = [
+				'name' 				=> $row['name'],
+				'id'				=> $row['id'],
+				'order_id'			=> $row['order_id'],
+				'awards_count'		=> isset($row['awards_count']) ? $row['awards_count'] : 0,
+				'medals_count'		=> isset($row['medals_count']) ? $row['medals_count'] : 0,
+			];
 		}
 		$this->db->sql_freeresult($result);
 
 		generate_smilies('inline', 0);
-		$this->template->assign_vars(array(
+		$this->template->assign_vars([
 			'S_CAN_AWARD_MEDALS' => ($this->user->data['user_type'] == USER_FOUNDER || $this->auth->acl_get('u_award_medals')) ? true : false,
 			'S_CAN_NOMINATE_MEDALS'	=> ($this->auth->acl_get('u_nominate_medals') && $user_id != $this->user->data['user_id']) ? true : false,
 			'U_NOMINATE_PANEL'		=> $this->helper->route('bb3mobi_medals_controller', array('m' => 'nominate', 'u' => $user_id)),
 			'U_AWARD_PANEL'			=> $this->helper->route('bb3mobi_medals_controller', array('m' => 'award', 'u' => $user_id)),
 			'U_VALIDATE_PANEL'		=> $this->helper->route('bb3mobi_medals_controller', array('m' => 'validate', 'u' => $user_id)),
 			'U_AWARDED_PANEL' 		=> $this->helper->route('bb3mobi_medals_controller', array('m' => 'awarded', 'u' => $user_id)),
-		));
+		]);
 
 		switch ($mode)
 		{
@@ -1029,85 +1045,24 @@ class medals
 			break;
 
 			default:
-				$sql = "SELECT u.username, u.user_colour, ma.user_id, ma.medal_id, ma.nominated
-						FROM " . USERS_TABLE . " u
-						JOIN " . $this->tb_medals_awarded . " ma ON u.user_id = ma.user_id
-						GROUP BY ma.nominated, ma.user_id, u.username, ma.medal_id
-						ORDER BY u.username_clean";
-				$result = $this->db->sql_query($sql);
-				$users_medals = [];
-				$i = 1;
-				while ($row = $this->db->sql_fetchrow($result))
+				foreach ($cats as $cat)
 				{
-					$users_medals[$i] = array(
-						'username' 		=> $row['username'],
-						'user_colour' 	=> $row['user_colour'],
-						'medal_id' 		=> $row['medal_id'],
-						'user_id'		=> $row['user_id'],
-						'nominated'		=> $row['nominated'],
-					);
-					$i++;
-				}
-				$this->db->sql_freeresult($result);
-
-				$at_least_one_awarded = false;
-				foreach ($cats as $key => $value)
-				{
-					$at_least_one = true;
-
-					foreach ($medals as $key2 => $value2)
-					{
-						if ($value2['parent'] == $value['id'])
-						{
-							if ($at_least_one)
-							{
-								$at_least_one_awarded = true;
-								$this->template->assign_block_vars('medalrow', array(
-										'IS_CAT'	=> 1,
-										'MEDAL_CAT'	=> $value['name'],
-								));
-								$at_least_one = false;
-							}
-							$awarded_users = '' ;
-							$nominations = 0 ;
-							foreach ($users_medals as $key3 => $value3)
-							{
-								if ($value3['medal_id'] == $value2['id'] && $value3['nominated'] == 0)
-								{
-									$awarded = get_username_string('full', $value3['user_id'], $value3['username'], $value3['user_colour']) ;
-									$awarded_users = $awarded_users ? $awarded_users . ', ' . $awarded : $awarded ;
-								}
-								else if ($value3['medal_id'] == $value2['id'] && $value3['nominated'] == 1)
-								{
-									$nominations++ ;
-								}
-							}
-
-							$u_medal_award = $this->helper->route('bb3mobi_medals_controller', array('m' => 'ma', 'med' => $value2['id']));
-							$u_medal_ncp = $this->helper->route('bb3mobi_medals_controller', array('m' => 'mn', 'med' => $value2['id']));
-
-							$this->template->assign_block_vars('medalrow', array(
-									'MEDAL_NAME'			=> $value2['name'],
-									'U_MEDAL_AWARD_PANEL'	=> $u_medal_award,
-									'MEDAL_IMG'				=> '<img src="' . $value2['image'] . '">',
-									'MEDAL_DESC'			=> $value2['description'],
-									'MEDAL_AWARDED'			=> $awarded_users ? $awarded_users : $this->user->lang['NO_MEDALS_ISSUED'],
-									'NOMINATIONS'			=> ($nominations > 0) ? true : false,
-									'U_MEDAL_NCP'			=> $u_medal_ncp,
-									'MEDAL_DESC'			=> $value2['description'],
-							));
-						}
-					}
+					$this->template->assign_block_vars('catrows', [
+						'MEDAL_CAT'			=> $cat['name'],
+						'AWARDS_COUNT'		=> $cat['awards_count'],
+						'MEDALS_COUNT'		=> $cat['medals_count'],
+						'U_CATPAGE'			=> $this->helper->route('bb3mobi_medals_categorypage', ['category_id' => $cat['id']]),
+					]);
 				}
 
-				$this->template->assign_vars(array(
+				$this->template->assign_vars([
 						'S_MEDAL_VIEW'	=> true,
-						'NO_MEDAL'		=> $at_least_one_awarded ? 0 : 1,
-				));
+						'NO_MEDAL'		=> count($cats) == 0,
+				]);
 
 				page_header($this->user->lang['MEDALS_VIEW']);
 				$this->template->set_filenames(array(
-					'body' => '@bb3mobi_medals/medals.html')
+					'body' => '@bb3mobi_medals/medals_cat_list.html')
 				);
 				page_footer();
 

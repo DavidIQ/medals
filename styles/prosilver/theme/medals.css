@@ -23,3 +23,8 @@ fieldset.fields3 dt {
 	width: 45em;
 	border-right-width: 0;
 }
+
+.medal-category {
+	padding-left: 10px !important;
+	padding-top: 7px !important;
+}

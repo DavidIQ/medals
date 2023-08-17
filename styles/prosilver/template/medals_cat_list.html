@@ -1,0 +1,29 @@
+{% include 'overall_header.html' %}
+<div class="forabg">
+	<div class="inner">
+		<ul class="topiclist">
+			<li class="header">
+				<dl class="row-item">
+					<dt><div class="list-inner">{{ lang('MEDAL_CATEGORIES') }}</div></dt>
+					<dd class="topics">{{ lang('MEDALS') }}</dd>
+					<dd class="posts">{{ lang('MEDAL_AWARDS') }}</dd>
+				</dl>
+			</li>
+		</ul>
+		<ul class="topiclist">
+		{% for catrow in catrows %}
+			<li class="row {% if catrow.S_ROW_COUNT is even %}bg1{% else %}bg2{% endif %}">
+				<dl class="row-item">
+					<dt><div class="list-inner medal-category"><a class="forumtitle" href="{{ catrow.U_CATPAGE }}">{{ catrow.MEDAL_CAT }}</a></div></dt>
+					<dd class="topics">{{ catrow.MEDALS_COUNT }}</dd>
+					<dd class="posts">{{ catrow.AWARDS_COUNT }}</dd>
+				</dl>
+			</li>
+		{% endfor %}
+		{% if NO_MEDALS %}
+			<li class="row bg2">{{ lang('NO_MEDALS') }}</li>
+		{% endif %}
+		</ul>
+	</div>
+</div>
+{% include 'overall_footer.html' %}
