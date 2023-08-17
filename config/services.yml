@@ -11,6 +11,7 @@ services:
             - '@template'
             - '@controller.helper'
             - '@dbal.conn'
+            - '@pagination'
             - '%bb3mobi.tables.medals%'
             - '%bb3mobi.tables.medals_awarded%'
             - '%bb3mobi.tables.medals_cats%'

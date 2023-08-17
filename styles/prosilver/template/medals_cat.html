@@ -34,5 +34,12 @@
 			</table>
 		</div>
 	</div>
+	{% if loops.pagination|length %}
+	<div class="action-bar">
+		<div class="pagination">
+			{% INCLUDE 'pagination.html' %}
+		</div>
+	</div>
+	{% endif %}
 </div>
 {% include 'overall_footer.html' %}
