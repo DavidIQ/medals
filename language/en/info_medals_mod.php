@@ -82,6 +82,7 @@ $lang = array_merge($lang, array(
 	'MEDALS'						=> 'Medals',
 	'MEDALS_VIEW_BUTTON'			=> 'Award Details',
 	'MEDALS_VIEW'					=> 'Medals',
+	'MEDALS_VIEW_CAT'				=> 'Medals - %s',
 	'MEDAL_DETAIL'					=> 'Medal Detail',
 	'MEDAL_DESCRIPTION'				=> 'Medal Description',
 	'MEDAL_DESC'					=> 'Description',

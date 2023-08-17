@@ -4,8 +4,8 @@
     "description": "A system for awarding medals to users.",
     "homepage": "https://github.com/bb3mobi/medals",
     "keywords": [ "medal", "rating", "system", "like", "award", "ribbons" ],
-    "version": "1.1.0",
-    "time": "2023-06-24",
+    "version": "2.0.0",
+    "time": "2023-08-16",
     "license": "GPL-2.0",
     "authors": [
       {

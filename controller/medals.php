@@ -36,12 +36,48 @@ class medals
 	/** @var \phpbb\db\driver\driver_interface */
 	protected $db;
 
+	/** @var string */
+	protected $tb_medals;
+
+	/** @var string */
+	protected $tb_medals_awarded;
+
+	/** @var string */
+	protected $tb_medals_cats;
+
+	/** @var \bb3mobi\medals\core\dynamic_image */
+	protected $dynamic;
+
+	/**	@var string */
 	protected $phpbb_root_path;
+
+	/** @var string */
 	protected $php_ext;
+
+	/** @var string */
+	protected $uid;
+
+	/** @var string */
+	protected $bitfield;
+
+	/** @var bool */
+	protected $allow_bbcode;
+
+	/** @var bool */
+	protected $allow_smilies;
+
+	/** @var bool */
+	protected $allow_urls;
+
+	/** @var string */
+	protected $m_flags;
+
+	/** @var bool */
+	protected $points_enable;
 
 	const HOUR_TTL = 3600;
 
-	public function __construct(\phpbb\user $user, \phpbb\auth\auth $auth, \phpbb\config\config $config, \phpbb\request\request_interface $request, \phpbb\template\template $template, \phpbb\controller\helper $helper, \phpbb\db\driver\driver_interface $db, $tb_medals, $tb_medals_awarded, $tb_medals_cats, $dynamic, $phpbb_root_path, $php_ext)
+	public function __construct(\phpbb\user $user, \phpbb\auth\auth $auth, \phpbb\config\config $config, \phpbb\request\request_interface $request, \phpbb\template\template $template, \phpbb\controller\helper $helper, \phpbb\db\driver\driver_interface $db, string $tb_medals, string $tb_medals_awarded, string $tb_medals_cats, \bb3mobi\medals\core\dynamic_image $dynamic, string $phpbb_root_path, string $php_ext)
 	{
 		$this->user = $user;
 		$this->auth = $auth;
@@ -50,7 +86,7 @@ class medals
 		$this->template = $template;
 		$this->helper = $helper;
 		$this->db = $db;
-		$this->tb_medal = $tb_medals;
+		$this->tb_medals = $tb_medals;
 		$this->tb_medals_awarded = $tb_medals_awarded;
 		$this->tb_medals_cats = $tb_medals_cats;
 		$this->dynamic = $dynamic;
@@ -111,7 +147,7 @@ class medals
 		$medals = [];
 
 		$sql = "SELECT *
-			FROM " . $this->tb_medal . "
+			FROM " . $this->tb_medals . "
 			ORDER BY order_id ASC";
 		$result = $this->db->sql_query($sql, self::HOUR_TTL);
 		while ($row = $this->db->sql_fetchrow($result))
@@ -726,7 +762,7 @@ class medals
 
 				$sql = "SELECT ma.*, m.name
 						FROM " . $this->tb_medals_awarded . " AS ma
-						JOIN " . $this->tb_medal . " AS m ON m.id = ma.medal_id
+						JOIN " . $this->tb_medals . " AS m ON m.id = ma.medal_id
 						WHERE ma.user_id = {$user_id}
 						  AND ma.nominated <> 0";
 				$result = $this->db->sql_query($sql);
@@ -1077,6 +1113,87 @@ class medals
 
 			break;
 		}
+	}
+
+	public function medals_category(int $category_id)
+	{
+		$sql = "SELECT name
+			FROM " . $this->tb_medals_cats . "
+			WHERE id = $category_id";
+		$result = $this->db->sql_query($sql, self::HOUR_TTL);
+		$cat_name = $this->db->sql_fetchfield('name');
+		$this->db->sql_freeresult($result);
+
+		$sql_array = [
+			'SELECT'	=> 'u.username, u.user_colour, ma.user_id, ma.medal_id, ma.nominated, m.name AS medal_name, m.description, m.image',
+			'FROM'			=> [ $this->tb_medals => 'm' ],
+			'LEFT_JOIN'	=> [
+				[
+					'FROM'	=> [ $this->tb_medals_awarded => 'ma' ],
+					'ON'	=> 'ma.medal_id = m.id',
+				],
+				[
+					'FROM'	=> [  USERS_TABLE => 'u' ],
+					'ON'	=> 'u.user_id = ma.user_id',
+				],
+			],
+			'WHERE'			=> 'm.parent = ' . $category_id,
+			'ORDER_BY'		=> 'm.order_id, u.username_clean',
+		];
+		$sql = $this->db->sql_build_query('SELECT_DISTINCT', $sql_array);
+		
+		$users_medals = [];
+		$result = $this->db->sql_query($sql);
+		while ($row = $this->db->sql_fetchrow($result))
+		{
+			$users_medals[$row['medal_id']][] = $row;
+		}
+		$this->db->sql_freeresult($result);
+
+		$medals_path = generate_board_url() . $this->config['medals_images_path'];
+		$medal_ids = array_keys($users_medals);
+		foreach ($medal_ids as $medal_id)
+		{
+			$awarded_users = '';
+			$nominations = 0;
+			$medal_users = $users_medals[$medal_id];
+			foreach ($medal_users as $row)
+			{
+				if ($row['nominated'] == 0)
+				{
+					$awarded = get_username_string('full', $row['user_id'], $row['username'], $row['user_colour']) ;
+					$awarded_users = $awarded_users ? $awarded_users . ', ' . $awarded : $awarded ;
+				}
+				else
+				{
+					$nominations++ ;
+				}
+			}
+
+			$this->template->assign_block_vars('medalrows', [
+				'MEDAL_DESC'			=> $row['description'],
+				'MEDAL_NAME'			=> $row['medal_name'],
+				'MEDAL_IMG'				=> '<img src="' . $medals_path . '/' . $row['image'] . '">',
+				'MEDAL_DESC'			=> $row['description'],
+				'MEDAL_AWARDED'			=> $awarded_users ? $awarded_users : $this->user->lang['NO_MEDALS_ISSUED'],
+				'NOMINATIONS'			=> $nominations > 0,
+				'U_MEDAL_AWARD_PANEL'	=> $this->helper->route('bb3mobi_medals_controller', ['m' => 'ma', 'med' => $row['medal_id']]),
+				'U_MEDAL_NCP'			=> $this->helper->route('bb3mobi_medals_controller', ['m' => 'mn', 'med' => $row['medal_id']]),
+			]);
+		}
+
+		$this->template->assign_vars([
+			'MEDALS_CAT_NAME'		=> $cat_name,
+			'NO_MEDALS'				=> count($users_medals) == 0,
+			'U_MEDALS_CAT'			=> $this->helper->route('bb3mobi_medals_categorypage', ['category_id' => $category_id]),
+			'S_CAN_AWARD_MEDALS' 	=> ($this->user->data['user_type'] == USER_FOUNDER || $this->auth->acl_get('u_award_medals')),
+		]);
+
+		page_header(sprintf($this->user->lang['MEDALS_VIEW_CAT'], $cat_name));
+		$this->template->set_filenames([
+			'body' => '@bb3mobi_medals/medals_cat.html'
+		]);
+		page_footer();
 	}
 
 	private function getfirstcat()

@@ -1,3 +1,12 @@
 bb3mobi_medals_controller:
     path: /medals
     defaults: { _controller: bb3mobi.medals.controller:medals_system }
+
+bb3mobi_medals_categorypage:
+    path: /badges/{category_id}
+    defaults:
+        _controller: bb3mobi.medals.controller:medals_category
+        page: 1
+        title: ''
+    requirements:
+        category_id: \d+

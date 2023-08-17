@@ -1,0 +1,38 @@
+{% include 'overall_header.html' %}
+<div class="content">
+	<h2 class="forum-title"><a href="{{ U_MEDALS }}">{{ lang('MEDALS') }}</a>&nbsp;&lt;&nbsp;<a href="{{ U_MEDALS_CAT }}">{{ MEDALS_CAT_NAME }}</a></h2>
+	<div class="forumbg forumbg-table">
+		<div class="inner">
+			<table class="table1" cellspacing="1" id="medals_cat">
+				<thead>
+					<tr>
+						<th align="center" width="150">{{ lang('MEDAL') }}</th>
+						<th align="center">{{ lang('MEDAL_DESC') }}</th>
+						<th align="center" width="40%">{{ lang('MEDAL_AWARDED') }}</th>
+						{% if S_CAN_AWARD_MEDALS %}<th align="center" width="150">{{ lang('MEDAL_MOD') }}</th>{% endif %}
+					</tr>
+				</thead>
+				<tbody>
+					{% for medalrow in medalrows %}
+					<tr class="{% if medalrow.S_ROW_COUNT is even %}bg1{% else %}bg2{% endif %}">
+						<td align="center">{{ medalrow.MEDAL_NAME }}<br />{{ medalrow.MEDAL_IMG }}</td>
+						<td>{{ medalrow.MEDAL_DESC }}</td>
+						<td align="center">{{ medalrow.MEDAL_AWARDED }}</td>
+						{% if S_CAN_AWARD_MEDALS %}
+						<td  class="bg3" align="center"><a href="{{ medalrow.U_MEDAL_AWARD_PANEL }}"><strong>{{ lang('MEDAL_AWARD_PANEL') }}</strong></a>
+							{% if medalrow.NOMINATIONS %}<hr /><a href="{{ medalrow.U_MEDAL_NCP }}"><strong>{{ lang('NOMINATE_MEDAL') }}</strong></a>{% endif %}
+						</td>
+						{% endif %}
+					</tr>
+					{% endfor %}
+					{% if NO_MEDALS %}
+					<tr class="bg2">
+						<td colspan="{% if S_CAN_AWARD_MEDALS %}4{% else %}3{% endif %}">{{ lang('NO_MEDALS') }}</td>
+					</tr>
+					{% endif %}
+				</tbody>
+			</table>
+		</div>
+	</div>
+</div>
+{% include 'overall_footer.html' %}
