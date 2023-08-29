@@ -1099,8 +1099,7 @@ class medals
 		$cat_name = $this->db->sql_fetchfield('name');
 		$this->db->sql_freeresult($result);
 
-		$tpl_loopname = 'medalrows';
-		$medals_start = $this->request->variable($tpl_loopname . '_start', 0);
+		$medals_start = $this->request->variable('start', 0);
 
 		$sql = "SELECT id, name, description, image
 			FROM " . $this->tb_medals . "
@@ -1125,6 +1124,7 @@ class medals
 				break;
 			}
 		}
+		unset($resultset);
 
 		$sql_array = [
 			'SELECT'	=> 'u.username, u.user_colour, ma.user_id, ma.medal_id, ma.nominated',
@@ -1187,12 +1187,144 @@ class medals
 
 		page_header(sprintf($this->user->lang['MEDALS_VIEW_CAT'], $cat_name));
 
-		$pagination_url = append_sid($this->phpbb_root_path . $this->user->page['page_name'], []);
-		$this->pagination->generate_template_pagination($pagination_url, 'pagination',
-			$tpl_loopname . '_start', $medals_total, $this->medals_per_page, max(0, min((int) $medals_start, $this->medals_per_page)));
+		$pagination_url = append_sid($this->helper->route('bb3mobi_medals_categorypage', ['category_id' => $category_id]));
+		$this->pagination->generate_template_pagination($pagination_url, 'pagination', 'start', $medals_total, $this->medals_per_page, $medals_start);
 
 		$this->template->set_filenames([
 			'body' => '@bb3mobi_medals/medals_cat.html'
+		]);
+		page_footer();
+	}
+
+	public function medals_awards(int $user_id)
+	{
+		$sql = 'SELECT COUNT(id) AS medals_count
+			FROM ' . $this->tb_medals_awarded . "
+			WHERE user_id = {$user_id}
+			  AND nominated = 0";
+		$result = $this->db->sql_query($sql);
+		$medal_count = (int) $this->db->sql_fetchfield('medals_count');
+		$this->db->sql_freeresult($result);
+
+		$this->template->assign_vars([
+			'USER_ID'				=> $user_id,
+			'USER_MEDAL_COUNT'		=> $medal_count,
+		]);
+
+		if (!$medal_count)
+		{
+			return;
+		}
+
+		$details_start = $this->request->variable('start', 0);
+		
+		$sql_array = [
+			'SELECT'	=> 'm.id AS medal_id, m.name AS medal_name, m.description AS medal_desc, m.image, m.device,
+							m.dynamic, m.parent, ma.nominated_reason, ma.time, ma.awarder_id, ma.awarder_un,
+							ma.awarder_color, ma.bbuid, ma.bitfield, c.id AS cat_id, c.name AS cat_name',
+			'FROM'			=> [ $this->tb_medals_awarded => 'ma' ],
+			'LEFT_JOIN'	=> [
+				[
+					'FROM'	=> [  $this->tb_medals => 'm' ],
+					'ON'	=> 'm.id = ma.medal_id',
+				],
+				[
+					'FROM'	=> [  $this->tb_medals_cats => 'c' ],
+					'ON'	=> 'c.id = m.parent',
+				],
+			],
+			'WHERE'			=> "ma.user_id = {$user_id} AND ma.nominated = 0",
+			'ORDER_BY'		=> 'c.order_id, m.order_id, ma.time',
+		];
+		$sql = $this->db->sql_build_query('SELECT_DISTINCT', $sql_array);
+		$result = $this->db->sql_query($sql);
+		$resultset = $this->db->sql_fetchrowset($result);
+		$this->db->sql_freeresult($result);
+
+		$total_count = count($resultset);
+		$user_awards_rowset = [];
+
+		$i = 0;
+		foreach ($resultset as $row)
+		{
+			if ($i < $details_start)
+			{
+				$i++;
+				continue;
+			}
+			$user_awards_rowset[] = $row;
+			if (count($user_awards_rowset) >= $this->medals_per_page)
+			{
+				break;
+			}
+		}
+		unset($resultset);
+
+		$cat_id = $medal_id = 0;
+		foreach ($user_awards_rowset as $row)
+		{
+			$new_medal = $medal_id !== (int) $row['medal_id'];
+			if (!$new_medal)
+			{
+				$i++;
+				continue;
+			}
+			$medal_id = (int) $row['medal_id'];
+			$new_cat = $cat_id !== (int) $row['cat_id'];
+			$medal_awards = array_filter($user_awards_rowset, function($award) use ($row) {
+				return $award['medal_id'] == $row['medal_id'];
+			});
+			$awards_map = function($award) {
+				return [
+					'AWARDER'			=> get_username_string('full', $award['awarder_id'], $award['awarder_un'], $award['awarder_color'], $award['awarder_un']),
+					'TIME'				=> $this->user->format_date($award['time']),
+					'REASON'			=> generate_text_for_display($award['nominated_reason'], $award['bbuid'], $award['bitfield'], $this->m_flags, $this->allow_bbcode, $this->allow_urls, $this->allow_smilies),
+				];
+			};
+			$awards = array_map($awards_map, $medal_awards);
+			$awards_count = count($awards);
+
+			$row['image'] = generate_board_url() . $this->config['medals_images_path'] . $row['image'];
+			$row['device'] = generate_board_url() . $this->config['medals_images_path'] . 'devices/' . $row['device'];
+			if ($row['dynamic'])
+			{
+				$image = $this->helper->route('bb3mobi_medals_controller', [
+						'm' => 'mi',
+						'med' => $row['image'],
+						'd' => $row['device'] . '-' . ($awards_count - 1) . '.gif'
+					]
+				);
+			}
+			else
+			{
+				$cluster = '-' . $awards_count;
+				$device_image = substr_replace($row['image'], $cluster, -4) . substr($row['image'], -4);
+				$image = file_exists($device_image) ? $device_image : $row['image'];
+			}
+			
+			$this->template->assign_block_vars('medalsdetails', [
+				'S_NEW_CATEGORY'	=> $new_cat,
+				'CATEGORY_NAME'		=> $row['cat_name'],
+				'NAME'				=> $row['medal_name'],
+				'DESCRIPTION'		=> $row['medal_desc'],
+				'U_IMAGE' 			=> $image,
+				'COUNT' 			=> count($awards),
+				'AWARDS'			=> $awards,
+			]);
+
+			if ($new_cat)
+			{
+				$cat_id = (int) $row['cat_id'];
+			}
+		}
+
+		page_header($this->user->lang['MEDALS_VIEW_BUTTON']);
+
+		$pagination_url = append_sid($this->helper->route('bb3mobi_medals_awardsage', ['user_id' => $user_id]));
+		$this->pagination->generate_template_pagination($pagination_url, 'pagination', 'start', $total_count, $this->medals_per_page, $details_start);
+
+		$this->template->set_filenames([
+			'body' => '@bb3mobi_medals/medal_awards.html'
 		]);
 		page_footer();
 	}

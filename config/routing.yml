@@ -10,3 +10,12 @@ bb3mobi_medals_categorypage:
         title: ''
     requirements:
         category_id: \d+
+
+bb3mobi_medals_awardsage:
+    path: /medals/awards/{user_id}
+    defaults:
+        _controller: bb3mobi.medals.controller:medals_awards
+        page: 1
+        title: ''
+    requirements:
+        category_id: \d+

@@ -28,3 +28,46 @@ fieldset.fields3 dt {
 	padding-left: 10px !important;
 	padding-top: 7px !important;
 }
+
+.awards-view {
+	width: 100%;
+	text-align: center;
+	padding: 10px 0 2px 0;
+	font-weight: bold;
+}
+
+.medal-info {
+	text-align: center !important;
+	padding: 0 !important;
+}
+
+.medal-info p {
+	margin: 0;
+}
+
+.medal-info-row {
+	width: 75% !important;
+}
+
+.medal-details {
+	padding: 5px 10px !important;
+	margin: auto !important;
+}
+
+.medal-details-row {
+	float: none !important;
+	width: 100% !important;
+}
+
+.medal-details-row p {
+	margin: 0 !important;
+}
+
+li.category-name {
+	color: #fff !important;
+	font-weight: bold;
+	font-style: italic;
+	font-size: 1.4em;
+	border-top: black solid;
+    padding: 5px 2px;
+}
