@@ -26,7 +26,7 @@ class v_1_1_0_image_path_setting extends \phpbb\db\migration\migration
 	{
 		return [
 			// Add config
-			['config.add', ['medals_images_path', '/images/medals']],
+			['config.add', ['medals_images_path', '/images/medals/']],
 			// Update version
 			['config.update', ['medals_version', '1.1.0']],
 		];
