@@ -107,7 +107,7 @@ $lang = array_merge($lang, array(
 	'MEDAL_LAST_MEDALS'				=> 'Last %d medals',
 
 // Error messages
-	'CANNOT_AWARD_MULTIPLE'	=> 'This user has been awarded the maximum amount assigned to this medal',
+	'CANNOT_AWARD_MULTIPLE'	=> 'This user has been awarded the maximum amount assigned to this medal.<br /><br /><a href="%s">Return to the previous page</a>',
 	'IMAGE_ERROR'			=> 'You cannot select this as a medal to award',
 	'IMAGE_ERROR_NOM'		=> 'You cannot select this as a medal to nominate',
 	'NO_CAT_ID'				=> 'No Category ID was specified.',

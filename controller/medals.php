@@ -653,29 +653,35 @@ class medals
 					trigger_error(sprintf($this->user->lang['NO_MEDAL_MSG'], $return_to));
 				}
 
-				$user_id_list = sizeof($user_id) > 1 ? $user_id : [$user_id];
+				$user_id_list = is_array($user_id) > 1 ? $user_id : [$user_id];
 				unset($user_id);
 
-				$award_rows = [];
-				$sql = "SELECT count(*) as count, user_id
+				$sql = "SELECT COUNT(user_id) AS count, user_id
 					FROM " . $this->tb_medals_awarded . "
 					WHERE medal_id = $medal_id
 						AND nominated = 0
-						AND " . $this->db->sql_in_set('user_id', $user_id);
+						AND " . $this->db->sql_in_set('user_id', $user_id_list);
 				$result = $this->db->sql_query($sql);
-				while($row = $this->db->sql_fetchrow($result))
-				{
-					$award_rows[] = $row;
-				}
+				$award_rows = $this->db->sql_fetchrowset($result);
 				$this->db->sql_freeresult($result);
 
 				foreach ($user_id_list as $user_id)
 				{
 					$row = array_filter($award_rows, function($value, $key) use ($user_id) {
-						return $key === 'user_id' && $value === $user_id;
+						if (is_array($value))
+						{
+							return $value['user_id'] == $user_id;
+						}
+						return $key == 'user_id' && $value == $user_id;
 					}, ARRAY_FILTER_USE_BOTH);
 
-					if ($row['count'] >= $medals[$medal_id]['number'])
+					$award_count = 0;
+					if (!empty($row))
+					{
+						$award_count = $row[0]['count'];
+					}
+
+					if ($award_count >= $medals[$medal_id]['number'])
 					{
 						trigger_error(sprintf($this->user->lang['CANNOT_AWARD_MULTIPLE'], append_sid('memberlist.php?mode=viewprofile&u=' . $user_id)));
 					}
