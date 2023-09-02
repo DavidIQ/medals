@@ -80,7 +80,6 @@ $lang = array_merge($lang, array(
 // medals view
 	'MEDAL'							=> 'Medal',
 	'MEDALS'						=> 'Medals',
-	'MEDALS_VIEW_BUTTON'			=> 'Award Details',
 	'MEDALS_VIEW'					=> 'Medals',
 	'MEDALS_VIEW_CAT'				=> 'Medals - %s',
 	'MEDAL_DETAIL'					=> 'Medal Detail',
@@ -105,6 +104,7 @@ $lang = array_merge($lang, array(
 	'MEDAL_VIEW_ALL'				=> 'View all medals',
 	'MEDAL_AWARDS'					=> 'Awards',
 	'MEDAL_CATEGORIES'				=> 'Medal Categories',
+	'MEDAL_LAST_MEDALS'				=> 'Last %d medals',
 
 // Error messages
 	'CANNOT_AWARD_MULTIPLE'	=> 'This user has been awarded the maximum amount assigned to this medal',

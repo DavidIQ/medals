@@ -116,7 +116,7 @@ $lang = array_merge($lang, array(
 	'ACP_MEDALS_TOPIC_ROW_EXPLAIN'		=> 'Number of medals to display in the Viewtopic across.',
 	'ACP_MEDALS_TOPIC_COL'				=> 'Number of medals down',
 	'ACP_MEDALS_TOPIC_COL_EXPLAIN'		=> 'Number of medals to display in the Viewtopic down.',
-	'ACP_MEDALS_PROFILE_ACROSS'			=> 'Medals to display in the profile across',
-	'ACP_MEDALS_PROFILE_ACROSS_EXPLAIN'	=> 'Number of medals to display across in the profile medal information section.',
+	'ACP_MEDALS_PROFILE_ACROSS'			=> 'Medals to display in profile',
+	'ACP_MEDALS_PROFILE_ACROSS_EXPLAIN'	=> 'Number of medals to display in the profile medal information section.',
 	'ACP_MEDALS_ACTIVATE' 				=> 'Medals Extension Activated',
 ));

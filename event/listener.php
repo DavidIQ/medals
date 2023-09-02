@@ -32,9 +32,30 @@ class listener implements EventSubscriberInterface
 	/** @var \phpbb\db\driver\driver_interface */
 	protected $db;
 
+	/** @var string */
+	protected $tb_medal;
+
+	/** @var string */
+	protected $tb_medals_awarded;
+
+	/** @var string */
+	protected $tb_medals_cats;
+
+	/** @var \bb3mobi\medals\core\medals_memberlist */
+	protected $memberlist;
+
+	/** @var \bb3mobi\medals\core\medals_viewtopic */
+	protected $viewtopic;
+
+	/** @var array */
+	protected $medals_count = [];
+
+	/** @var array */
+	protected $nominated_medals = [];
+
 	const FIVE_MIN_TTL = 300;
 
-	public function __construct(\phpbb\user $user, \phpbb\auth\auth $auth, \phpbb\config\config $config, \phpbb\template\template $template, \phpbb\controller\helper $helper, \phpbb\db\driver\driver_interface $db, $tb_medals, $tb_medals_awarded, $tb_medals_cats, $memberlist, $viewtopic)
+	public function __construct(\phpbb\user $user, \phpbb\auth\auth $auth, \phpbb\config\config $config, \phpbb\template\template $template, \phpbb\controller\helper $helper, \phpbb\db\driver\driver_interface $db, $tb_medals, $tb_medals_awarded, $tb_medals_cats, \bb3mobi\medals\core\medals_memberlist $memberlist, \bb3mobi\medals\core\medals_viewtopic $viewtopic)
 	{
 		$this->user = $user;
 		$this->auth = $auth;
@@ -53,26 +74,32 @@ class listener implements EventSubscriberInterface
 
 	static public function getSubscribedEvents()
 	{
-		return array(
+		return [
 			'core.page_header_after'			=> 'medals_enable_link',
 			'core.memberlist_view_profile'		=> 'memberlist_view_profile',
 			'core.viewtopic_modify_post_data'	=> 'viewtopic_modify_post_data',
 			'core.viewtopic_modify_post_row'	=> 'viewtopic_post_row_after',
 			'core.permissions'					=> 'add_permission',
-		);
+		];
 	}
 
 	public function medals_enable_link($event)
 	{
-		$this->template->assign_vars(array(
-			'U_MEDALS'	=> $this->helper->route('bb3mobi_medals_controller'),
-			'S_MEDALS'	=> ($this->config['medals_active']) ? true : false,
-			)
+		$this->template->assign_vars([
+				'U_MEDALS'	=> $this->helper->route('bb3mobi_medals_controller'),
+				'S_MEDALS'	=> ($this->config['medals_active']) ? true : false,
+			]
 		);
 	}
 
 	public function memberlist_view_profile($event)
 	{
+		if (!$this->config['medals_active'])
+		{
+			return;
+		}
+
+		$this->template->assign_var('S_MEDALS_ACTIVE', true);
 		$member = $event['member'];
 		$user_id = (int) $member['user_id'];
 		$this->memberlist->medal_row($user_id);
@@ -80,10 +107,15 @@ class listener implements EventSubscriberInterface
 
 	public function viewtopic_modify_post_data($event)
 	{
-		$user_ids = array();
+		if (!$this->config['medals_active'])
+		{
+			return;
+		}
+
+		$user_ids = [];
 		$rowset = $event['rowset'];
 		$post_list = $event['post_list'];
-		// Получаем список пользователей
+		// Get a list of users.
 		for ($i = 0, $end = sizeof($post_list); $i < $end; ++$i)
 		{
 			if (!isset($rowset[$post_list[$i]]))
@@ -92,7 +124,7 @@ class listener implements EventSubscriberInterface
 			}
 			$row = $rowset[$post_list[$i]];
 			$poster_id = $row['user_id'];
-			// Исключаем гостей, скрытые/игнорируемые сообщения и повтор.
+			// Exclude guests, hidden/ignored messages and repeat.
 			if ($poster_id != ANONYMOUS && !$row['foe'] && !$row['hide_post'] && !in_array($poster_id, $user_ids))
 			{
 				$user_ids[] = $poster_id;
@@ -128,6 +160,11 @@ class listener implements EventSubscriberInterface
 
 	public function viewtopic_post_row_after($event)
 	{
+		if (!$this->config['medals_active'])
+		{
+			return;
+		}
+
 		$row = $event['row'];
 		$poster_id = $row['user_id'];
 		if (isset($this->medals_count[$poster_id]))
@@ -135,17 +172,17 @@ class listener implements EventSubscriberInterface
 			$nominated_medals = (isset($this->nominated_medals[$poster_id])) ? $this->nominated_medals[$poster_id] : '';
 			if ($nominated_medals)
 			{
-				$u_is_nominated = $this->helper->route('bb3mobi_medals_controller', array('m' => 'validate', 'u' => $poster_id));
+				$u_is_nominated = $this->helper->route('bb3mobi_medals_controller', ['m' => 'validate', 'u' => $poster_id]);
 				$nominated_medals = sprintf($this->user->lang['USER_IS_NOMINATED'], $u_is_nominated);
 			}
 
 			$medals_count = $this->medals_count[$poster_id];
-			$event['post_row'] = array_merge($event['post_row'], array(
+			$event['post_row'] = array_merge($event['post_row'], [
 					'MEDALS_COUNT'		=> $medals_count,
 					'MEDALS_NOMINATED'	=> $nominated_medals,
 					'S_HAS_MEDALS'		=> ($medals_count) ? true : false,
 					'S_HAS_NOMINATIONS'	=> ($nominated_medals) ? true : false,
-				)
+				]
 			);
 
 			if ($this->config['medal_display_topic'] && $medals_count)
@@ -203,11 +240,11 @@ class listener implements EventSubscriberInterface
 	 */
 	public function add_permission($event)
 	{
-		$permissions = array(
-			'u_award_medals' => array('lang' => 'ACL_U_AWARD_MEDALS', 'cat' => 'misc'),
-			'u_nominate_medals' => array('lang' => 'ACL_U_NOMINATE_MEDALS', 'cat' => 'misc'),
-			'a_manage_medals' => array('lang' => 'ACL_A_MANAGE_MEDALS', 'cat' => 'misc'),
-		);
+		$permissions = [
+			'u_award_medals' => ['lang' => 'ACL_U_AWARD_MEDALS', 'cat' => 'misc'],
+			'u_nominate_medals' => ['lang' => 'ACL_U_NOMINATE_MEDALS', 'cat' => 'misc'],
+			'a_manage_medals' => ['lang' => 'ACL_A_MANAGE_MEDALS', 'cat' => 'misc'],
+		];
 		$event['permissions'] = array_merge($permissions, $event['permissions']);
 	}
 }

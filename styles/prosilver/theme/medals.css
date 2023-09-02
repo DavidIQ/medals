@@ -24,16 +24,13 @@ fieldset.fields3 dt {
 	border-right-width: 0;
 }
 
+.profile-medal-info a {
+	font-weight: bold;
+}
+
 .medal-category {
 	padding-left: 10px !important;
 	padding-top: 7px !important;
-}
-
-.awards-view {
-	width: 100%;
-	text-align: center;
-	padding: 10px 0 2px 0;
-	font-weight: bold;
 }
 
 .medal-info {

@@ -43,7 +43,7 @@ class medals_module
 						'medals_images_path'	=> array('lang' => 'ACP_MEDALS_IMG_PATH',		'validate' => 'string',	'type' => 'text:15:100', 'explain' => true),
 						'medal_small_img_width' => array('lang' => 'ACP_MEDALS_SM_IMG_WIDTH',	'validate' => 'int',	'type' => 'text:3:3', 'explain' => true),
 						'medal_small_img_ht'	=> array('lang' => 'ACP_MEDALS_SM_IMG_HT',		'validate' => 'int',	'type' => 'text:3:3', 'explain' => true),
-						'medal_profile_across'	=> array('lang' => 'ACP_MEDALS_PROFILE_ACROSS', 'validate' => 'int',	'type' => 'text:2:2', 'explain' => true),
+						'medal_profile_display'	=> array('lang' => 'ACP_MEDALS_PROFILE_DISPLAY', 'validate' => 'int',	'type' => 'text:2:2', 'explain' => true),
 						'legend2'				=> 'ACP_MEDALS_VT_SETTINGS',
 						'medal_display_topic'	=> array('lang' => 'ACP_MEDALS_TOPIC_DISPLAY',	'validate' => 'bool',	'type' => 'radio:yes_no', 'explain' => false),
 						'medal_topic_row' 		=> array('lang' => 'ACP_MEDALS_TOPIC_ROW',		'validate' => 'int',	'type' => 'text:2:2', 'explain' => true),

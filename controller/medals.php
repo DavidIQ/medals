@@ -1206,8 +1206,15 @@ class medals
 		$medal_count = (int) $this->db->sql_fetchfield('medals_count');
 		$this->db->sql_freeresult($result);
 
+		$sql = 'SELECT *
+			FROM ' . USERS_TABLE . "
+			WHERE user_id = $user_id";
+		$result = $this->db->sql_query($sql);
+		$user = $this->db->sql_fetchrow($result);
+		$this->db->sql_freeresult($result);
+
 		$this->template->assign_vars([
-			'USER_ID'				=> $user_id,
+			'AWARDED_USERNAME'		=> get_username_string('full', $user_id, $user['username'], $user['user_colour']),
 			'USER_MEDAL_COUNT'		=> $medal_count,
 		]);
 
@@ -1318,7 +1325,7 @@ class medals
 			}
 		}
 
-		page_header($this->user->lang['MEDALS_VIEW_BUTTON']);
+		page_header($this->user->lang['MEDALS'] . ' - ' . $user['username']);
 
 		$pagination_url = append_sid($this->helper->route('bb3mobi_medals_awardsage', ['user_id' => $user_id]));
 		$this->pagination->generate_template_pagination($pagination_url, 'pagination', 'start', $total_count, $this->medals_per_page, $details_start);

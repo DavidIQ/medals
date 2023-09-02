@@ -1,22 +1,14 @@
-<!-- BEGIN switch_display_medal -->
-<!-- INCLUDEJS toggle_display.js -->
-<div class="panel" id="medal_info">
-	<div class="inner">
-		<h3>{{ lang('MEDAL_INFORMATION') }}</h3>
-		<h3>{{ lang('MEDALS_VIEW') ~ lang('COLON') }}&nbsp;<b>{{ USER_MEDAL_COUNT }}</b></h3>
-		<table width="100%" cellspacing="1" cellpadding="3" border="0" align="center">
-			<tr>
-				<td valign="top">
-					<!-- BEGIN details -->
-					&nbsp;{{ switch_display_medal.details.MEDAL_IMAGE_SMALL }}&nbsp;
-					<!-- END details -->
-				</td>
-			</tr>
-		</table>
-		{% if U_MEDALS_VIEW %}
-		<hr />
-		<p class="awards-view"><a href="{{ U_MEDALS_VIEW }}">{{ lang('MEDALS_VIEW_BUTTON') }}</a></p>
-		{% endif %}
-	</div>
+<div class="profile-medal-info">
+	<dt>{{ lang('MEDALS') ~ lang('COLON') }}</dt>
+	<dd>{{ USER_MEDAL_COUNT }}{% if U_AWARD_MEDALS %} | <a href="{{ U_AWARD_MEDALS }}"><strong>{{ lang('AWARD_MEDAL') }}</strong></a>{% endif %}{% if U_NOMINATE_MEDALS %} | <a href="{{ U_NOMINATE_MEDALS }}"><strong>{{ lang('NOMINATE') }}</strong></a>{% endif %}</dd>
+	{% if USER_MEDAL_COUNT %}
+	<dt>{{ MEDAL_LAST_MEDALS ~ lang('COLON') }}</dt>
+	<dd>
+		{% for medal_image in switch_display_medal_images %}
+		<img src="{{ medal_image.MEDAL_IMG_SRC }}" alt="{{ medal_image.MEDAL_IMG_NAME }}" title="{{ medal_image.MEDAL_IMG_NAME }}" {% if medal_image.MEDAL_IMG_HEIGHT %}height="{{ medal_image.MEDAL_IMG_HEIGHT }}" {% endif %}{% if medal_image.MEDAL_IMG_WIDTH %}width="{{ medal_image.MEDAL_IMG_WIDTH }}" {% endif %}/>
+		{% endfor %}
+	</dd>
+	<dt>&nbsp;</dt>
+	<dd><a href="{{ U_MEDALS_VIEW }}">{{ lang('MEDAL_VIEW_ALL') }}</a></dd>
+	{% endif %}
 </div>
-<!-- END switch_display_medal -->
