@@ -36,7 +36,7 @@ class medals_viewtopic
 		$row = 0;
 		$col = 0;
 		$img = '';
-		while (list($image, $medal) = @each($rowset2))
+		foreach ($rowset2 as $image => $medal)
 		{
 			if (!$col)
 			{
@@ -48,7 +48,7 @@ class medals_viewtopic
 				if ($medal['dynamic'])
 				{
 					$device = generate_board_url() . $this->config['medals_images_path'] . 'devices/' . $medal['device'] . '-' . ($medal['count'] - 1) . '.gif' ;
-					$image = $this->helper->route('bb3mobi_medals_controller', array('m' => 'mi', 'med' => generate_board_url() . $this->config['medals_images_path'] . $image, 'd' => $device));
+					$image = $this->helper->route('bb3mobi_medals_controller', ['m' => 'mi', 'med' => generate_board_url() . $this->config['medals_images_path'] . $image, 'd' => $device]);
 				}
 				else
 				{
