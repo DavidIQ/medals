@@ -188,19 +188,36 @@ class listener implements EventSubscriberInterface
 			if ($this->config['medal_display_topic'] && $medals_count)
 			{
 				$rowset_medals = [];
-				$sql = "SELECT m.id, m.name, m.image, m.device, m.dynamic, m.parent, ma.time, c.id as cat_id, c.name as cat_name
+				$sql = "SELECT m.id, m.name, m.image, m.device, m.dynamic, m.parent, ma.time, c.id AS cat_id, c.name AS cat_name, c.order_id AS cat_order
 						FROM " . $this->tb_medal . " m
 						JOIN " . $this->tb_medals_awarded . " ma ON ma.medal_id = m.id
 						JOIN " . $this->tb_medals_cats . " c ON c.id = m.parent
 						WHERE ma.user_id = $poster_id
 						  AND ma.nominated <> 1
-						ORDER BY c.order_id ASC, m.order_id ASC, ma.time DESC";
+						ORDER BY c.order_id ASC, m.order_id ASC";
 				$result = $this->db->sql_query($sql, self::FIVE_MIN_TTL);
-				while($row = $this->db->sql_fetchrow($result))
-				{
-					$rowset_medals[] = $row;
-				}
+				$rowset = $this->db->sql_fetchrowset($result);
 				$this->db->sql_freeresult($result);
+
+				if (count($rowset))
+				{
+					$medals_primary_cat = array_filter($rowset, function($row) {
+						return $row['cat_order'] == 1;
+					}) ?? [];
+	
+					$medals_other_cats = array_filter($rowset, function($row) {
+						return $row['cat_order'] != 1;
+					}) ?? [];
+
+					if (count($medals_other_cats))
+					{
+						usort($medals_other_cats, function($a, $b) {
+							return $a['time'] < $b['time'] ? 1 : -1;
+						});
+					}
+
+					$rowset_medals = array_merge($medals_primary_cat, $medals_other_cats);
+				}
 
 				if (count($rowset_medals))
 				{
