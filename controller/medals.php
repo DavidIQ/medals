@@ -1116,6 +1116,12 @@ class medals
 		$this->db->sql_freeresult($result);
 
 		$medals_total = count($resultset);
+
+		if (!$medals_total)
+		{
+			trigger_error('NO_MEDALS');
+		}
+
 		$i = 0;
 		foreach ($resultset as $row)
 		{
