@@ -1,0 +1,12 @@
+<div id="tabs" class="tabs">
+    <ul>
+        {% if S_CAN_NOMINATE_MEDALS %}
+        <li class="tab{% if S_NOMINATE_PANEL_ACTIVE %} activetab{% endif %}"><a href="{{ U_NOMINATE_PANEL }}"><span>{{ lang('NOMINATE') }}</span></a></li>
+        {% endif %}
+        {% if S_CAN_AWARD_MEDALS %}
+        <li class="tab{% if S_AWARD_PANEL_ACTIVE %} activetab{% endif %}"><a href="{{ U_AWARD_PANEL }}"><span>{{ lang('AWARD_MEDAL') }}</span></a></li>
+        <li class="tab{% if S_VALIDATE_PANEL_ACTIVE %} activetab{% endif %}"><a href="{{ U_VALIDATE_PANEL }}"><span>{{ lang('NOMINATE_MEDAL') }}</span></a></li>
+        <li class="tab{% if S_AWARDED_PANEL_ACTIVE %} activetab{% endif %}"><a href="{{ U_AWARDED_PANEL }}"><span>{{ lang('AWARDED_MEDAL') }}</span></a></li>
+        {% endif %}
+    </ul>
+</div>

@@ -1,23 +1,10 @@
 <!-- INCLUDE overall_header.html -->
 <h2>{L_MEDAL_CP}</h2>
 <form method="post" action="{U_MEDALS_ACTION}" name="post">
-<div class="panel">
-	<div class="inner">
-		<div style="width: 100%;">
-			<div id="cp-menu">
-				<div id="navigation">
-					<ul>
-						<!-- IF S_CAN_NOMINATE_MEDALS -->
-						<li><a href="{U_NOMINATE_PANEL}"><span>{L_NOMINATE}</span></a></li>
-						<!-- ENDIF -->
-						<!-- IF S_CAN_AWARD_MEDALS -->
-						<li id="active-subsection"><a><span>{L_AWARD_MEDAL}</span></a></li>
-						<li><a href="{U_VALIDATE_PANEL}"><span>{L_NOMINATE_MEDAL}</span></a></li>
-						<li><a href="{U_AWARDED_PANEL}"><span>{L_AWARDED_MEDAL}</span></a></li>
-						<!-- ENDIF -->
-					</ul>
-				</div>
-			</div>
+	{% set S_AWARD_PANEL_ACTIVE = true %}
+	{% include 'medalcp_nav.html' %}
+	<div class="panel">
+		<div class="inner">
 			<div id="cp-main" class="ucp-main">
 				<h2>{L_AWARD_TO} {USERNAME}</h2>
 				<div class="panel" id="postingbox">
@@ -79,7 +66,6 @@
 			<div class="clear"></div>
 		</div>
 	</div>
-</div>
 </form>
 <script type="text/javascript">
 	{JS}
