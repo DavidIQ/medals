@@ -122,6 +122,7 @@ $lang = array_merge($lang, array(
 	'NO_USER_NOMINATIONS'	=> 'This user hasn\'t been nominated for any medals',
 	'NO_SWAP_ID'			=> 'No Swap ID was specified',
 	'NOT_SELF'				=> 'You cannot nominate yourself',
+	'NOT_AWARDED_TO_USER'	=> 'Could not award badge to: %s. You will be redirected momentarily.',
 
 	'EXT_AUTHOR_COPY'		=> 'Anvar 2015 BB3.Mobi &copy; <a href="http://bb3.mobi/forum/viewtopic.php?t=78" title="Development Extension - Anvar Stybaev" >Medals System Extension</a>',
 ));

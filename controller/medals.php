@@ -668,17 +668,14 @@ class medals
 				foreach ($user_id_list as $user_id)
 				{
 					$row = array_filter($award_rows, function($value, $key) use ($user_id) {
-						if (is_array($value))
-						{
-							return $value['user_id'] == $user_id;
-						}
-						return $key == 'user_id' && $value == $user_id;
+						return $value['user_id'] == $user_id;
 					}, ARRAY_FILTER_USE_BOTH);
+					$row = array_pop($row);
 
 					$award_count = 0;
-					if (!empty($row))
+					if (isset($row['count']))
 					{
-						$award_count = $row[0]['count'];
+						$award_count = $row['count'];
 					}
 
 					if ($award_count >= $medals[$medal_id]['number'])
@@ -984,39 +981,58 @@ class medals
 					}
 					unset($usernames);
 
-					$award_user = $not_award_user = $awarded_user = [] ;
+					$award_user_ids = $not_award_user = $awarded_user = [];
 
-					$sql = "SELECT count(*) as number, u.user_id, u.username_clean
-							FROM " . $this->tb_medals_awarded . " ba
-							JOIN " . USERS_TABLE . " u ON u.user_id = ba.user_id
-							WHERE ba.medal_id = {$med_id}
-							  AND " . $this->db->sql_in_set('u.username_clean', $username_list);
+					$sql = "SELECT COUNT(u.user_id) AS number, u.user_id
+							FROM " . $this->tb_medals_awarded . " ma
+							JOIN " . USERS_TABLE . " u ON u.user_id = ma.user_id
+							WHERE ma.medal_id = {$med_id}
+							  AND " . $this->db->sql_in_set('u.username_clean', $username_list) . '
+						    GROUP BY u.user_id';
+					$result = $this->db->sql_query($sql);
+					$user_awards_list = $this->db->sql_fetchrowset($result);
+					$this->db->sql_freeresult($result);
 
+					// Change usernames to ids
+					$sql = 'SELECT user_id, username_clean
+							FROM ' . USERS_TABLE . '
+							WHERE ' . $this->db->sql_in_set('username_clean', $username_list) ;
 					$result = $this->db->sql_query($sql);
 					while ($row = $this->db->sql_fetchrow($result))
 					{
-						if ($row['number'] < $medals[$med_id]['number'])
+						$user_award_row = array_filter($user_awards_list, function($value, $key) use ($row) {
+							return $value['user_id'] == $row['user_id'];
+						}, ARRAY_FILTER_USE_BOTH);
+						$user_award_row = array_pop($user_award_row);
+
+						$user_award_number = 0;
+						if (isset($user_award_row['number']))
 						{
-							$award_user[] = $row['user_id'] ;
+							$user_award_number = $user_award_row['number'];
+						}
+						
+						if ($user_award_number < $medals[$med_id]['number'])
+						{
+							$award_user_ids[] = $row['user_id'] ;
 							$awarded_user[] = $row['username_clean'] ;
 						}
 					}
 					$this->db->sql_freeresult($result);
 					$not_award_user = array_diff($username_list, $awarded_user);
 					// Call award_medal function
-					$time = time() ;
-					if (sizeof($award_user))
+					$time = time();
+					if (count($award_user_ids))
 					{
-						foreach ($award_user as $uid)
+						foreach ($award_user_ids as $uid)
 						{
-							$this->award_medal($medals, $med_id, $uid, $message, $time, $medals[$med_id]['points']) ;
+							$this->award_medal($medals, $med_id, $uid, $message, $time, $medals[$med_id]['points']);
 						}
 					}
-					if (sizeof($not_award_user))
+					if (count($not_award_user))
 					{
 						$redirect = $this->helper->route('bb3mobi_medals_controller', array('mode' => $mode, 'med' => $med_id));
 						meta_refresh(3, $redirect);
-						trigger_error(sprintf($this->user->lang['NO_USER_SELECTED'], implode(", ", $not_award_user)));
+						trigger_error(sprintf($this->user->lang['NOT_AWARDED_TO_USER'], implode(", ", $not_award_user)));
 					}
 					else
 					{
