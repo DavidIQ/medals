@@ -1181,7 +1181,7 @@ class medals
 		{
 			$awarded_users = '';
 			$nominations = 0;
-			$medal_users = $users_medals[$medal['id']];
+			$medal_users = $users_medals[$medal['id']] ?? [];
 			foreach ($medal_users as $row)
 			{
 				if ($row['nominated'] == 0)
