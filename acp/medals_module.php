@@ -189,16 +189,11 @@ class medals_module
 				}
 				$db->sql_freeresult($result);
 
-				//$cat_id = $request->variable('catid', -1);
-				//$medal_id = $request->variable('medalid', -1);
-				//$move_id = $request->variable('moveid', -1);
-				//$move_type = $request->variable('movetype', -1);
-
 				$cat_id = $request->variable('catid', -1);
 				$medal_id = $request->variable('medalid', -1);
 				$move_id = $request->variable('moveid', -1);
 				$move_type = $request->variable('movetype', -1);
-				$action = $request->variable('submode', '');
+				$submode = $request->variable('submode', '');
 				if ($request->is_set_post('addcat'))
 				{
 					$submode = 'addcat';
@@ -221,6 +216,15 @@ class medals_module
 		switch ($submode)
 		{
 			case 'move':
+				// Get proper medal order in category
+				$i = 1;
+				$cat_medals = array_map(function($medal) use (&$i) {
+					$medal['cat_order'] = $i++;
+					return $medal;
+				}, array_filter($medals, function($medal) use ($cat_id) {
+					return $medal['parent'] == $cat_id;
+				}));
+
 				if ($move_type)
 				{
 					$swap_diff = 1;
@@ -229,18 +233,34 @@ class medals_module
 				{
 					$swap_diff = -1;
 				}
-				$sql = 'UPDATE ' . MEDALS_TABLE . '
-							SET order_id = ' . $medals[$move_id]['order_id'] . '
-							WHERE order_id = ' . $medals[$move_id]['order_id'] . '+' . $swap_diff . '
-								AND parent = ' . $cat_id;
-				$db->sql_query($sql);
-				$sql = 'UPDATE ' . MEDALS_TABLE . '
-							SET order_id = ' . $medals[$move_id]['order_id'] . '+' . $swap_diff . '
-							WHERE id = ' . $move_id;
-				$db->sql_query($sql);
+
+				$current_order = $cat_medals[$move_id]['cat_order'];
+				foreach ($cat_medals as $cat_medal)
+				{
+					$medal_id = $cat_medal['id'];
+					if ($cat_medal['cat_order'] == ($current_order + $swap_diff))
+					{
+						$cat_medal['order_id'] = 0;
+						$cat_medal['cat_order'] = $current_order;
+					}
+					else if ($medal_id == $move_id)
+					{
+						$cat_medal['order_id'] = 0;
+						$cat_medal['cat_order'] += $swap_diff;
+					}
+					if ($cat_medal['order_id'] != $cat_medal['cat_order'])
+					{
+						$sql = 'UPDATE ' . MEDALS_TABLE . "
+								   SET order_id = {$cat_medal['cat_order']}
+								 WHERE id = $medal_id";
+						$db->sql_query($sql);
+					}
+				}
+
 				$sql = 'SELECT *
-						FROM ' . MEDALS_TABLE . '
-						ORDER BY order_id ASC';
+						FROM ' . MEDALS_TABLE . "
+						WHERE parent = $cat_id
+						ORDER BY order_id ASC";
 				$result = $db->sql_query($sql);
 				$medals = [];
 				while ($row = $db->sql_fetchrow($result))
@@ -269,12 +289,11 @@ class medals_module
 
 				$this->tpl_name = 'acp_medals_cat';
 				$this->page_title = $user->lang['ACP_MEDALS_INDEX'];
-				foreach ($medals as $key => $value)
+				$cat_medals = array_filter($medals, function($medal) use ($cat_id) {
+					return $medal['parent'] == $cat_id;
+				});
+				foreach ($cat_medals as $value)
 				{
-					if ($value['parent'] != $cat_id)
-					{
-						continue;
-					}
 					$template->assign_block_vars('medals', [
 						'U_EDIT'			=> append_sid('index.php?i=' . $id . '&mode=management&submode=editmedal&medalid=' . $value['id'] . '&catid=' . $cat_id),
 						'U_DELETE'			=> append_sid('index.php?i=' . $id . '&mode=management&submode=deletemedal&medalid=' . $value['id'] . '&catid=' . $cat_id),
