@@ -2,45 +2,7 @@
 <h2 class="memberlist-title">{{ lang('MEDALS') }} - {{ AWARDED_USERNAME }}</h2>
 <div class="forabg">
 	<div class="inner">
-        <ul class="topiclist">
-			<li class="header">
-				<dl class="row-item">
-					<dt class="medal-info-row"><div class="list-inner medal-info">{{ lang('MEDAL') }}</div></dt>
-					<dd class="lastpost medal-details">{{ lang('MEDAL_DETAIL') }}</dd>
-				</dl>
-			</li>
-		</ul>
-        <ul class="topiclist">
-		{% for medaldetails in medalsdetails %}
-            {% if medaldetails.S_NEW_CATEGORY %}
-            <li class="category-name">{{ medaldetails.CATEGORY_NAME }}</li>
-            {% endif %}
-			<li class="row {% if medaldetails.S_ROW_COUNT is even %}bg1{% else %}bg2{% endif %}">
-				<dl class="row-item">
-					<dt class="medal-info-row">
-                        <div class="list-inner medal-info">
-                            {{ medaldetails.NAME }}
-                            <p><img src="{{ medaldetails.U_IMAGE }}" alt="{{ medaldetails.NAME }}" title="{{ medaldetails.NAME }}" /></p>
-                            <p>{{ lang('MEDAL_AMOUNT') ~ lang('COLON') }} {{ medaldetails.COUNT }}</p>
-                        </div>
-                    </dt>
-					<dd class="lastpost medal-details medal-details-row">
-                        <p><b>{{ medaldetails.DESCRIPTION }}</b></p>
-                        {% for award in medaldetails.AWARDS %}
-                        <div>
-                            <p>{{ lang('AWARDED_BY') ~ lang('COLON') }} {{ award.AWARDER }}</p>
-                            <p>{{ lang('AWARD_TIME') ~ lang('COLON') }} {{ award.TIME }}</p>
-                            <p>{{ lang('MEDAL_AWARD_REASON') ~ lang('COLON') }} {{ award.REASON }}</p>
-                        </div>
-                        {% endfor %}
-                    </dd>
-				</dl>
-			</li>
-		{% endfor %}
-		{% if not USER_MEDAL_COUNT %}
-			<li class="row bg2">{{ lang('NO_MEDALS') }}</li>
-		{% endif %}
-        </ul>
+        {% include 'medals_awarded.html' %}
 	</div>
 </div>
 {% if loops.pagination|length %}

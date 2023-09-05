@@ -68,3 +68,9 @@ li.category-name {
 	border-top: black solid;
     padding: 5px 2px;
 }
+
+div.ucp-main li.header dl.row-item dt div,
+div.ucp-main li.header dl.row-item dd,
+div.ucp-main ul.topiclist li.category-name {
+	color: black !important;
+}

@@ -1,46 +1,18 @@
 <!-- INCLUDE overall_header.html -->
-<h2>{L_MEDAL_CP}</h2>
-<form method="post" action="{U_MEDALS_ACTION}" name="post">
+<h2>{{ lang('MEDAL_CP') }}</h2>
+<form method="post" action="{{ U_MEDALS_ACTION }}" name="post">
 	{% set S_AWARDED_PANEL_ACTIVE = true %}
 	{% include 'medalcp_nav.html' %}
 	<div class="panel">
 		<div class="inner">
 			<div id="cp-main" class="ucp-main">
-				<h2>{L_AWARDED_MEDAL_TO} {USERNAME}</h2>
-				{% if not S_TODO_DONE %}
-				<p><b>NEEDS PAGINATION</b></p>
-				{% else %}
-				<div class="panel">
-					<div class="inner">
-						<table class="table1">
-						<!-- BEGIN medals -->
-						<!-- IF medals.IS_CAT -->
-						<tr>
-							<td colspan="3">
-								<h3>{medals.MEDAL_NAME}</h3>
-							</td>
-						</tr>
-						<!-- ELSE -->
-						<tr class="<!-- IF medals.S_ROW_COUNT is even -->bg1<!-- ELSE -->bg2<!-- ENDIF -->">
-							<td align="center" width="120">{medals.MEDAL_IMAGE}</td>
-							<td align="left"><div class="reason">{medals.MEDAL_REASON}</div></td>
-							<td width="15">
-								<ul class="post-buttons">
-									<li><a title="{L_DELETE}" href="{medals.U_DELETE}" class="button button-icon-only">
-										<i class="icon fa-times fa-fw" aria-hidden="true"></i><span class="sr-only">{L_DELETE}</span>
-									</a></li>
-								</ul>
-							</td>
-						</tr>
-						<!-- ENDIF -->
-						<!-- BEGINELSE -->
-						<tr class="bg3">
-							<td colspan="3"><p>{L_NO_USER_MEDALS}</p></td>
-						</tr>
-						<!-- END medals -->
-						</table>
+				<h2>{{ lang('AWARDED_MEDAL_TO') }} {{ AWARDED_USERNAME }}</h2>
+				{% include 'medals_awarded.html' %}
+				{% if loops.pagination|length %}
+				<div class="action-bar">
+					<div class="pagination">
+						{% INCLUDE 'pagination.html' %}
 					</div>
-					<div class="clear"></div>
 				</div>
 				{% endif %}
 			</div>

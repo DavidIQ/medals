@@ -223,10 +223,11 @@ class medals
 		}
 		$this->db->sql_freeresult($result);
 
+		$can_award = ($this->user->data['user_type'] == USER_FOUNDER || $this->auth->acl_get('u_award_medals'));
 		generate_smilies('inline', 0);
 		$this->template->assign_vars([
-			'S_CAN_AWARD_MEDALS' => ($this->user->data['user_type'] == USER_FOUNDER || $this->auth->acl_get('u_award_medals')) ? true : false,
-			'S_CAN_NOMINATE_MEDALS'	=> ($this->auth->acl_get('u_nominate_medals') && $user_id != $this->user->data['user_id']) ? true : false,
+			'S_CAN_AWARD_MEDALS' 	=> $can_award,
+			'S_CAN_NOMINATE_MEDALS'	=> ($this->auth->acl_get('u_nominate_medals') && $user_id != $this->user->data['user_id']),
 			'U_NOMINATE_PANEL'		=> $this->helper->route('bb3mobi_medals_controller', array('m' => 'nominate', 'u' => $user_id)),
 			'U_AWARD_PANEL'			=> $this->helper->route('bb3mobi_medals_controller', array('m' => 'award', 'u' => $user_id)),
 			'U_VALIDATE_PANEL'		=> $this->helper->route('bb3mobi_medals_controller', array('m' => 'validate', 'u' => $user_id)),
@@ -537,98 +538,15 @@ class medals
 			break;
 
 			case 'awarded':
-				$sql = "SELECT user_id, username, user_colour
-					FROM " . USERS_TABLE . "
-					WHERE user_id = {$user_id}";
-				$result = $this->db->sql_query_limit($sql, 1, 0, self::HOUR_TTL);
-				$row = $this->db->sql_fetchrow($result);
-				$this->db->sql_freeresult($result);
-
-				$username = get_username_string('full', $row['user_id'], $row['username'], $row['user_colour'], $row['username']);
-
-				$sql3 = "SELECT *
-						FROM " . $this->tb_medals_awarded . "
-						WHERE user_id = {$user_id}
-							AND nominated <> 1" ;
-				$result3 = $this->db->sql_query($sql3);
-				$users_medals = [];
-				while ($row3 = $this->db->sql_fetchrow($result3))
-				{
-					$awarder_name = get_username_string('full', $row3['awarder_id'], $row3['awarder_un'], $row3['awarder_color'], $row3['awarder_un']) ;
-					$nom_message = sprintf($this->user->lang['NOMINATE_MESSAGE'], $awarder_name, $medals[$row3['medal_id']]['name']);
-
-					// Parse the message and subject
-					$reason = generate_text_for_display($row3['nominated_reason'], $row3['bbuid'], $row3['bitfield'], $this->m_flags);
-					$message = $this->user->lang['AWARDED_BY'] . ' ' . $awarder_name . ' ' . $this->user->format_date($row3['time']) . '<br \>' . $reason ;
-
-					$this_cat = $cats[$medals[$row3['medal_id']]['parent']];
-					$users_medals[$this_cat['order_id']]['name'] = $this_cat['name'];
-					$users_medals[$this_cat['order_id']][$medals[$row3['medal_id']]['order_id']][] = array(
-						'MEDAL_NAME'		=> $medals[$row3['medal_id']]['name'],
-						'MEDAL_IMAGE'		=> '<img src="' . $medals[$row3['medal_id']]['image'] . '" title="' . $medals[$row3['medal_id']]['name'] . '" alt="' . $medals[$row3['medal_id']]['name'] . '" />',
-						'MEDAL_REASON'		=> $message,
-						'ID'				=> $row3['id'],
-					);
-				}
-				$this->db->sql_freeresult($result3);
-
-				$my_medals_arr = [];
-				ksort($users_medals);
-				foreach ($users_medals as $key => $value)
-				{
-					ksort($value);
-					foreach ($value as $key2 => $value2)
-					{
-						if ($key2 != 'name')
-						{
-							foreach ($value2 as $key3 => $value3)
-							{
-								$my_medals_arr[] = array($value3, false);
-							}
-						}
-						else
-						{
-							$my_medals_arr[] = array($value2, true);
-						}
-					}
-				}
-
-				foreach ($my_medals_arr as $key => $value)
-				{
-					if ($value[1])
-					{
-						$this->template->assign_block_vars('medals', array(
-							'MEDAL_NAME'	=> $value[0],
-							'IS_CAT'		=> true,
-						));
-					}
-					else
-					{
-						$u_delete = $this->helper->route('bb3mobi_medals_controller', array(
-							'm' => 'delete',
-							'u' => $user_id,
-							'med' => $value[0]['ID'])
-						);
-						$this->template->assign_block_vars('medals', array(
-							'MEDAL_NAME'	=> $value[0]['MEDAL_NAME'],
-							'MEDAL_IMAGE'	=> $value[0]['MEDAL_IMAGE'],
-							'MEDAL_REASON'	=> $value[0]['MEDAL_REASON'],
-							'U_DELETE'		=> $u_delete,
-
-							'IS_CAT'		=> false,
-						));
-					}
-				}
-
-				$this->template->assign_vars(array(
-					'USERNAME'			=> $username,
-					'U_MEDALS_ACTION'	=> $this->helper->route('bb3mobi_medals_controller', array('m' => 'submit', 'u' => $user_id)),
-				));
+				$this->template->assign_vars([
+					'U_MEDALS_ACTION'	=> $this->helper->route('bb3mobi_medals_controller', ['m' => 'submit', 'u' => $user_id]),
+				]);
+				$this->medals_awards($user_id, $can_award);
 
 				page_header($this->user->lang['AWARDED_MEDAL_TO']);
-				$this->template->set_filenames(array(
-					'body' => '@bb3mobi_medals/medalcp_awarded_user.html')
-				);
+				$this->template->set_filenames([
+					'body' => '@bb3mobi_medals/medalcp_awarded_user.html'
+				]);
 				page_footer();
 			break;
 
@@ -1224,7 +1142,7 @@ class medals
 		page_footer();
 	}
 
-	public function medals_awards(int $user_id)
+	public function medals_awards(int $user_id, bool $can_delete = false)
 	{
 		$sql = 'SELECT COUNT(id) AS medals_count
 			FROM ' . $this->tb_medals_awarded . "
@@ -1255,7 +1173,7 @@ class medals
 		
 		$sql_array = [
 			'SELECT'	=> 'm.id AS medal_id, m.name AS medal_name, m.description AS medal_desc, m.image, m.device,
-							m.dynamic, m.parent, ma.nominated_reason, ma.time, ma.awarder_id, ma.awarder_un,
+							m.dynamic, m.parent, ma.id AS award_id, ma.nominated_reason, ma.time, ma.awarder_id, ma.awarder_un,
 							ma.awarder_color, ma.bbuid, ma.bitfield, c.id AS cat_id, c.name AS cat_name',
 			'FROM'			=> [ $this->tb_medals_awarded => 'ma' ],
 			'LEFT_JOIN'	=> [
@@ -1336,6 +1254,12 @@ class medals
 				$device_image = substr_replace($row['image'], $cluster, -4) . substr($row['image'], -4);
 				$image = file_exists($device_image) ? $device_image : $row['image'];
 			}
+
+			$u_delete = $can_delete ? $this->helper->route('bb3mobi_medals_controller', [
+				'm' => 'delete',
+				'u' => $user_id,
+				'med' => $row['award_id']
+			]) : false;
 			
 			$this->template->assign_block_vars('medalsdetails', [
 				'S_NEW_CATEGORY'	=> $new_cat,
@@ -1345,6 +1269,7 @@ class medals
 				'U_IMAGE' 			=> $image,
 				'COUNT' 			=> count($awards),
 				'AWARDS'			=> $awards,
+				'U_DELETE'			=> $u_delete,
 			]);
 
 			if ($new_cat)
@@ -1353,15 +1278,22 @@ class medals
 			}
 		}
 
-		page_header($this->user->lang['MEDALS'] . ' - ' . $user['username']);
-
-		$pagination_url = append_sid($this->helper->route('bb3mobi_medals_awardsage', ['user_id' => $user_id]));
-		$this->pagination->generate_template_pagination($pagination_url, 'pagination', 'start', $total_count, $this->medals_per_page, $details_start);
-
-		$this->template->set_filenames([
-			'body' => '@bb3mobi_medals/medal_awards.html'
-		]);
-		page_footer();
+		if (!$can_delete)
+		{
+			$pagination_url = append_sid($this->helper->route('bb3mobi_medals_awardsage', ['user_id' => $user_id]));
+			$this->pagination->generate_template_pagination($pagination_url, 'pagination', 'start', $total_count, $this->medals_per_page, $details_start);
+	
+			page_header($this->user->lang['MEDALS'] . ' - ' . $user['username']);
+			$this->template->set_filenames([
+				'body' => '@bb3mobi_medals/medal_awards.html'
+			]);
+			page_footer();
+		}
+		else
+		{
+			$pagination_url = append_sid($this->helper->route('bb3mobi_medals_controller', ['m' => 'awarded', 'u' => $user_id]));
+			$this->pagination->generate_template_pagination($pagination_url, 'pagination', 'start', $total_count, $this->medals_per_page, $details_start);
+		}
 	}
 
 	private function award_medal($medals, $medal_id, $user_id, $message, $time, $points = 0, $update = 0)
